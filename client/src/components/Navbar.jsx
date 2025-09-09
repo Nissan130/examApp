@@ -1,114 +1,123 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { User } from "lucide-react";
 
-export default function Navbar({ user, onLogout }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Navbar({ user, setUser, onLogout }) {
+  const [profileOpen, setProfileOpen] = useState(false); // profile dropdown
+  const navigate = useNavigate();
+  const profileRef = useRef();
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    onLogout();
+    navigate("/login");
+  };
+
+  // Switch role between examinee <-> examiner
+  const handleRoleSwitch = (role) => {
+    setUser({ ...user, role });
+    if (role === "examiner") {
+      navigate("/examiner/dashboard");
+    } else {
+      navigate("/examinee/dashboard");
+    }
+  };
+
+  const handleTitleClick = () => {
+    if (!user) {
+      navigate("/"); // landing page
+    } else if (user.role === "examiner") {
+      navigate("/examiner/dashboard");
+    } else {
+      navigate("/examinee/dashboard");
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-r from-yellow-100 to-orange-200 shadow-md p-4 sm:px-6 z-50">
       <div className="flex justify-between items-center">
-        {/* App Name / Logo */}
-        <Link
-          to={user?.role === "examiner" ? "/examiner/dashboard" : "/exams"}
-          className="text-2xl sm:text-3xl font-extrabold text-orange-600 hover:text-orange-700"
+        {/* App Title */}
+        <button
+          onClick={handleTitleClick}
+          className="text-2xl sm:text-3xl font-extrabold text-orange-600 hover:text-orange-700 cursor-pointer"
         >
           Exam App
-        </Link>
-
-        {/* Hamburger button for mobile */}
-        <button
-          className="sm:hidden text-orange-600 focus:outline-none"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <svg
-            className="w-8 h-8"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {isOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
         </button>
 
-        {/* Links for larger screens */}
-        <div className="hidden sm:flex sm:items-center sm:space-x-4">
-          {user ? (
-            <>
-              <p className="text-gray-700 sm:text-gray-800 text-sm sm:text-base">
-                Welcome, {user.email}
-              </p>
-              <button
-                onClick={onLogout}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
+        {/* Links / Profile */}
+        <div className="flex items-center space-x-4">
+          {!user && (
             <>
               <Link
                 to="/login"
-                className="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
+                className="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition text-sm sm:text-base"
               >
                 Login
               </Link>
               <Link
                 to="/register"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition text-sm sm:text-base"
               >
                 Register
               </Link>
             </>
+          )}
+          {user && (
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center justify-center w-10 h-10 bg-orange-500 rounded-full text-white hover:bg-orange-600 transition"
+              >
+                <User size={20} />
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg py-2">
+                  <p className="px-4 py-2 text-sm text-gray-700">
+                    Hello, {user.email.split("@")[0]}
+                  </p>
+                  <hr />
+                  <button
+                    onClick={() => handleRoleSwitch("examinee")}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${
+                      user.role === "examinee"
+                        ? "font-bold text-orange-500"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Examinee Role
+                  </button>
+                  <button
+                    onClick={() => handleRoleSwitch("examiner")}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${
+                      user.role === "examiner"
+                        ? "font-bold text-orange-500"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Examiner Role
+                  </button>
+                  <hr />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="sm:hidden mt-4 flex flex-col space-y-2">
-          {user ? (
-            <>
-              <p className="text-gray-700 text-sm">Welcome, {user.email}</p>
-              <button
-                onClick={onLogout}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-              >
-                Register
-              </Link>
-            </>
-          )}
-        </div>
-      )}
     </nav>
   );
 }

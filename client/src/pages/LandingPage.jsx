@@ -6,13 +6,13 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-orange-100">
       
       {/* Navbar */}
-      <nav className="w-full px-6 py-4 flex justify-between items-center bg-gradient-to-r from-yellow-100 to-orange-200 shadow-md fixed top-0 z-50">
+      {/* <nav className="w-full px-6 py-4 flex justify-between items-center bg-gradient-to-r from-yellow-100 to-orange-200 shadow-md fixed top-0 z-50">
         <h1 className="text-2xl font-bold text-orange-600">Exam App</h1>
         <div className="space-x-4">
           <Link to="/login" className="text-gray-700 hover:text-orange-600 font-medium transition">Login</Link>
           <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-medium transition">Register</Link>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Hero Section */}
       <section className="flex flex-col-reverse md:flex-row items-center justify-between max-w-6xl mx-auto pt-28 px-6 md:px-12">
@@ -29,7 +29,7 @@ export default function LandingPage() {
             <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition">
               Get Started
             </Link>
-            <Link to="/exams" className="bg-white border border-orange-500 text-orange-600 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition">
+            <Link to="/login" className="bg-white border border-orange-500 text-orange-600 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition">
               Explore Exams
             </Link>
           </div>

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
-import { ArrowLeft, Download, ImageIcon } from "lucide-react";
+import { ArrowLeft, Download, ImageIcon, Edit } from "lucide-react";
 
 export default function ViewExam() {
   const { state } = useLocation();
@@ -24,21 +24,15 @@ export default function ViewExam() {
     );
   }
 
-  // Function to load image and get dimensions
   const getImageDimensions = (url) => {
     return new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => {
-        resolve({ width: img.width, height: img.height });
-      };
-      img.onerror = () => {
-        resolve({ width: 100, height: 60 }); // Default dimensions if image fails to load
-      };
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => resolve({ width: 100, height: 60 });
       img.src = url;
     });
   };
 
-  // ✅ Export PDF (questions only / with answers)
   const exportPDF = async (includeAnswers = false) => {
     const doc = new jsPDF();
     let y = 20;
@@ -59,84 +53,54 @@ export default function ViewExam() {
     y += 10;
 
     for (const [idx, q] of exam.questions.entries()) {
-      // Add new page if needed
-      if (y > 220) {
-        doc.addPage();
-        y = 20;
-      }
-      
+      if (y > 220) { doc.addPage(); y = 20; }
       y += 10;
       doc.setFontSize(12);
       doc.text(`${idx + 1}. ${q.question}`, margin, y);
       y += 8;
 
-      // Add question image if exists
       if (q.questionImage) {
         try {
           const imgProps = await getImageDimensions(q.questionImage);
           const imgWidth = Math.min(contentWidth, 150);
           const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-          
-          if (y + imgHeight > 270) {
-            doc.addPage();
-            y = 20;
-          }
-          
+          if (y + imgHeight > 270) { doc.addPage(); y = 20; }
           doc.addImage(q.questionImage, 'JPEG', margin, y, imgWidth, imgHeight);
           y += imgHeight + 8;
-        } catch (error) {
-          console.error("Error adding question image:", error);
+        } catch {
           doc.text("[Image not available]", margin, y);
           y += 8;
         }
       }
 
-      // Add options
       for (const [i, opt] of q.options.entries()) {
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-        
+        if (y > 270) { doc.addPage(); y = 20; }
         doc.text(`   ${String.fromCharCode(65 + i)}. ${opt}`, margin + 5, y);
         y += 8;
-
-        // Add option image if exists
         if (q.optionImages && q.optionImages[i]) {
           try {
             const imgProps = await getImageDimensions(q.optionImages[i]);
             const imgWidth = Math.min(contentWidth - 10, 100);
             const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-            
-            if (y + imgHeight > 270) {
-              doc.addPage();
-              y = 20;
-            }
-            
+            if (y + imgHeight > 270) { doc.addPage(); y = 20; }
             doc.addImage(q.optionImages[i], 'JPEG', margin + 15, y, imgWidth, imgHeight);
             y += imgHeight + 8;
-          } catch (error) {
-            console.error("Error adding option image:", error);
+          } catch {
             doc.text("[Image not available]", margin + 15, y);
             y += 8;
           }
         }
       }
 
-      // Add answer if requested
       if (includeAnswers) {
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-        
-        doc.setTextColor(0, 128, 0); // Green for answers
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setTextColor(0, 128, 0);
         doc.text(`Answer: ${q.answer}`, margin + 5, y);
         doc.setTextColor(0, 0, 0);
         y += 10;
       }
 
-      y += 5; // Add some space between questions
+      y += 5;
     }
 
     const fileName = includeAnswers
@@ -148,7 +112,7 @@ export default function ViewExam() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto relative">
         {/* Header */}
         <div className="mb-8 pt-10">
           <button 
@@ -158,12 +122,21 @@ export default function ViewExam() {
             <ArrowLeft size={20} className="mr-2" />
             Back to Exams
           </button>
-          
+
+          {/* Edit button at top-right */}
+          <button
+            onClick={() => navigate(`/examiner/editexam/${exam.id}`, { state: { exam } })}
+            className="absolute top-10 right-0 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-md flex items-center transition duration-300"
+          >
+            <Edit size={18} className="mr-2" />
+            Edit Exam
+          </button>
+
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             {exam.examTitle}
           </h1>
           <p className="text-gray-600 text-lg">{exam.examDesc}</p>
-          
+
           <div className="flex flex-wrap gap-3 mt-4">
             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
               Marks: {exam.totalMarks}
@@ -190,7 +163,7 @@ export default function ViewExam() {
                 <span className="bg-blue-100 text-blue-700 rounded-lg p-2 mr-3">{idx + 1}.</span>
                 {q.question}
               </h3>
-              
+
               {/* Question Image */}
               {q.questionImage && (
                 <div className="ml-11 mb-4">
@@ -205,7 +178,7 @@ export default function ViewExam() {
                   />
                 </div>
               )}
-              
+
               <div className="ml-11 mb-4">
                 <ul className="space-y-2">
                   {q.options.map((opt, i) => (
@@ -215,7 +188,6 @@ export default function ViewExam() {
                       </span>
                       <div className="flex-1">
                         <span className="text-gray-700">{opt}</span>
-                        {/* Option Image */}
                         {q.optionImages && q.optionImages[i] && (
                           <div className="mt-2">
                             <div className="flex items-center mb-1">
@@ -234,7 +206,7 @@ export default function ViewExam() {
                   ))}
                 </ul>
               </div>
-              
+
               <div className="ml-11 p-3 bg-green-50 border border-green-200 rounded-xl">
                 <p className="text-green-700 font-semibold flex items-center">
                   <span className="bg-green-100 text-green-700 rounded-lg p-1 px-2 mr-3">✓</span>

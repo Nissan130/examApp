@@ -1,19 +1,30 @@
 import { useState, useEffect } from "react";
 
 export default function Timer({ duration, onTimeUp }) {
-  const [time, setTime] = useState(duration);
+  // Convert duration from minutes to seconds
+  const [time, setTime] = useState(duration * 60);
 
   useEffect(() => {
-    if (time === 0) {
-      onTimeUp();
-      return;
-    }
-    const interval = setInterval(() => setTime(t => t - 1), 1000);
+    const interval = setInterval(() => {
+      setTime(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          onTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, [time]);
+  }, [onTimeUp]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
 
-  return <div className="text-lg font-bold text-red-600">Remaining Time: {minutes}:{seconds < 10 ? '0'+seconds : seconds}</div>;
+  return (
+    <div className="text-lg font-bold text-red-600">
+      Remaining Time: {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
+    </div>
+  );
 }

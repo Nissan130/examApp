@@ -4,54 +4,146 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 // Pages
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
-import ExamsListWrapper from "./wrappers/Examinee/ExamsListWrapper";
-import ExamWrapper from "./wrappers/Examinee/ExamWrapper";
-import ResultWrapper from "./wrappers/Examinee/ResultWrapper";
-import ExaminerDashboard from "./pages/Examiner/Dashboard";
+import LandingPage from "./pages/LandingPage";
+import ExamsList from "./pages/Examinee/ExamsList"; // Replace wrapper with actual page
+// import ExamPage from "./pages/Examinee/ExamPage"; // Replace wrapper
+// import ResultPage from "./pages/Examinee/ResultPage"; // Replace wrapper
+import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
 import CreateExam from "./pages/Examiner/CreateExam";
-
-// Components
-import Navbar from "./components/Navbar";
 import ShowExams from "./pages/Examiner/ShowExams";
 import ViewExam from "./pages/Examiner/ViewExam";
 import EditExam from "./pages/Examiner/EditExam";
-import LandingPage from "./pages/LandingPage";
+import ExamineeDashboard from "./pages/Examinee/ExamineeDashboard";
+
+// Components
+import Navbar from "./components/Navbar";
+import PreviousExams from "./pages/Examinee/PreviousExams";
+import PreviewStartExam from "./pages/Examinee/PreviewStartExam";
+import RunningExam from "./pages/Examinee/RunningExam";
 
 function App() {
   const [user, setUser] = useState(null);
   const [exam, setExam] = useState(null);
   const [answers, setAnswers] = useState(null);
 
-  const ProtectedRoute = ({ children }) => (user ? children : <Navigate to="/login" />);
+  // Protected Route wrapper
+  const ProtectedRoute = ({ children }) => {
+    return user ? children : <Navigate to="/login" />;
+  };
 
   return (
     <Router>
-      {user && <Navbar user={user} onLogout={() => setUser(null)} />}
+      {/* Navbar visible always */}
+      <Navbar user={user} setUser={setUser} onLogout={() => setUser(null)} />
+
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Auth */}
         <Route
-          path="/"
-          element={user ? (
-            user.role === "examiner" ? <Navigate to="/examiner/dashboard" /> : <Navigate to="/exams" />
-          ) : <Navigate to="/landingpage" />}
+          path="/login"
+          element={<Login onLogin={(u) => setUser({ ...u })} />}
         />
-        <Route path="/landingpage" element={<LandingPage/>} />
-        <Route path="/login" element={<Login onLogin={setUser} />} />
-        <Route path="/register" element={<Register onRegister={setUser} />} />
+        <Route
+          path="/register"
+          element={<Register onRegister={(u) => setUser({ ...u })} />}
+        />
 
         {/* Examinee */}
-        <Route path="/exams" element={<ProtectedRoute><ExamsListWrapper user={user} exam={exam} setExam={setExam} /></ProtectedRoute>} />
-        <Route path="/exam" element={<ProtectedRoute><ExamWrapper user={user} exam={exam} setAnswers={setAnswers} /></ProtectedRoute>} />
-        <Route path="/result" element={<ProtectedRoute><ResultWrapper user={user} exam={exam} answers={answers} setExam={setExam} setAnswers={setAnswers} /></ProtectedRoute>} />
+        <Route
+          path="/examinee/dashboard"
+          element={
+            <ProtectedRoute>
+              {user?.role === "examinee" ? (
+                <ExamineeDashboard user={user} />
+              ) : (
+                <Navigate to="/examiner/dashboard" />
+              )}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/prevexam"
+          element={
+            <ProtectedRoute>
+              <PreviousExams user={user} exam={exam} setExam={setExam} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/previewstartexam"
+          element={
+            <ProtectedRoute>
+              <PreviewStartExam user={user} exam={exam} setExam={setExam} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/runningexam"
+          element={
+            <ProtectedRoute>
+              <RunningExam user={user} exam={exam} setExam={setExam} />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route
+          path="/exam"
+          element={
+            <ProtectedRoute>
+              <ExamPage user={user} exam={exam} setAnswers={setAnswers} />
+            </ProtectedRoute>
+          }
+        /> */}
+        {/* <Route
+          path="/result"
+          element={
+            <ProtectedRoute>
+              <ResultPage
+                user={user}
+                exam={exam}
+                answers={answers}
+                setExam={setExam}
+                setAnswers={setAnswers}
+              />
+            </ProtectedRoute>
+          }
+        /> */}
 
         {/* Examiner */}
-        <Route path="/examiner/dashboard" element={<ProtectedRoute>{user?.role === "examiner" ? <ExaminerDashboard user={user} /> : <Navigate to="/exams" />}</ProtectedRoute>} />
-        <Route path="/examiner/create" element={<ProtectedRoute>{user?.role === "examiner" ? <CreateExam /> : <Navigate to="/exams" />}</ProtectedRoute>} />
-        <Route path="/examiner/showexams" element={<ProtectedRoute>{user?.role === "examiner" ? <ShowExams /> : <Navigate to="/exams" />}</ProtectedRoute>} />
+        <Route
+          path="/examiner/dashboard"
+          element={
+            <ProtectedRoute>
+              {user?.role === "examiner" ? (
+                <ExaminerDashboard user={user} />
+              ) : (
+                <Navigate to="/examinee/dashboard" />
+              )}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examiner/create"
+          element={
+            <ProtectedRoute>
+              {user?.role === "examiner" ? <CreateExam /> : <Navigate to="/examinee/dashboard" />}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examiner/showexams"
+          element={
+            <ProtectedRoute>
+              {user?.role === "examiner" ? <ShowExams /> : <Navigate to="/examinee/dashboard" />}
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/examiner/viewexam/:id"
           element={
             <ProtectedRoute>
-              {user?.role === "examiner" ? <ViewExam /> : <Navigate to="/exams" />}
+              {user?.role === "examiner" ? <ViewExam /> : <Navigate to="/examinee/dashboard" />}
             </ProtectedRoute>
           }
         />
@@ -59,14 +151,26 @@ function App() {
           path="/examiner/editexam/:id"
           element={
             <ProtectedRoute>
-              {user?.role === "examiner" ? <EditExam /> : <Navigate to="/exams" />}
+              {user?.role === "examiner" ? <EditExam /> : <Navigate to="/examinee/dashboard" />}
             </ProtectedRoute>
           }
         />
 
-
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to={user ? (user.role === "examiner" ? "/examiner/dashboard" : "/exams") : "/login"} />} />
+        {/* Catch-all redirect */}
+        <Route
+          path="*"
+          element={
+            user ? (
+              user.role === "examiner" ? (
+                <Navigate to="/examiner/dashboard" />
+              ) : (
+                <Navigate to="/examinee/dashboard" />
+              )
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
       </Routes>
     </Router>
   );

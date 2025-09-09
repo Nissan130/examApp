@@ -1,32 +1,25 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { User, UserCheck } from "lucide-react"; // optional icons for roles
 
 export default function Register({ onRegister }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("examinee");
   const navigate = useNavigate();
 
   const handleRegister = (e) => {
     e.preventDefault();
-    const user = { name, email, role };
+
+    // Dummy user object (later you’ll save it in backend DB)
+    const user = { name, email };
     onRegister(user);
-    navigate(role === "examiner" ? "/examiner/dashboard" : "/exams");
+
+    // After register → always go to /exams (default dashboard for examinee)
+    navigate("/exams");
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-yellow-100 to-orange-200 px-4 py-8">
-
-      {/* Navbar */}
-      <nav className="w-full px-6 py-4 flex justify-between items-center bg-gradient-to-r from-yellow-100 to-orange-200 shadow-md fixed top-0 z-50">
-        <h1 className="text-2xl font-bold text-orange-600">Exam App</h1>
-        <div className="space-x-4">
-          <Link to="/login" className="text-gray-700 hover:text-orange-600 font-medium transition">Login</Link>
-          <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-medium transition">Register</Link>
-        </div>
-      </nav>
 
       {/* Form Card */}
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 flex flex-col items-center mt-12">
@@ -80,34 +73,6 @@ export default function Register({ onRegister }) {
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
               required
             />
-          </div>
-
-          {/* Role Selector - Smaller Cards */}
-          <div>
-            <label className="block mb-2 font-medium text-gray-700 text-sm">Select Role</label>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Examinee Card */}
-              <div
-                onClick={() => setRole("examinee")}
-                className={`cursor-pointer p-3 rounded-lg border transition shadow flex flex-col items-center justify-center text-sm
-                  ${role === "examinee" ? "bg-orange-100 border-orange-400" : "bg-white border-gray-300 hover:bg-orange-50"}
-                `}
-              >
-                <User size={20} className="text-orange-500 mb-1" />
-                <span className="font-medium text-gray-800">Examinee</span>
-              </div>
-
-              {/* Examiner Card */}
-              <div
-                onClick={() => setRole("examiner")}
-                className={`cursor-pointer p-3 rounded-lg border transition shadow flex flex-col items-center justify-center text-sm
-                  ${role === "examiner" ? "bg-orange-100 border-orange-400" : "bg-white border-gray-300 hover:bg-orange-50"}
-                `}
-              >
-                <UserCheck size={20} className="text-orange-500 mb-1" />
-                <span className="font-medium text-gray-800">Examiner</span>
-              </div>
-            </div>
           </div>
 
           {/* Register Button */}
