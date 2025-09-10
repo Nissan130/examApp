@@ -1,34 +1,64 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState(""); // Backend errors
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
-    // Dummy login logic
-    // Replace this with API call later
-    let role = "examinee"; // default role
-    if (email.endsWith("@examiner.com")) role = "examiner";
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const user = { email, rememberMe, role };
-    onLogin(user);
+      const data = await response.json();
 
-    // Redirect based on role
-    if (role === "examiner") {
-      navigate("/examiner/dashboard");
-    } else {
-      navigate("/examinee/dashboard");
+      if (response.ok) {
+        const userWithRole = { ...data.user, role: "examinee" };
+
+        // Save token
+        localStorage.setItem("token", data.token);
+
+        // Call parent callback
+        onLogin(userWithRole);
+
+        // Show success toast
+        toast.success("✅ Successfully logged in!", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+
+        // Redirect after toast
+        setTimeout(() => {
+          navigate("/examinee/dashboard");
+        }, 2000);
+      } else {
+        setError(data.error || "Invalid email or password");
+      }
+    } catch (err) {
+      console.error("Error connecting to backend:", err);
+      setError("Cannot connect to server. Try again later.");
+      toast.error("Cannot connect to server. Try again later.");
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-yellow-100 to-orange-200 px-4 py-8">
-      {/* Form Card */}
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 flex flex-col items-center mt-12">
         {/* App Name */}
         <div className="mb-6 text-center">
@@ -40,7 +70,10 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        {/* Form */}
+        {error && (
+          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
+        )}
+
         <form onSubmit={handleLogin} className="w-full space-y-4">
           {/* Email */}
           <div>
@@ -83,15 +116,11 @@ export default function Login({ onLogin }) {
               />
               <span>Remember me</span>
             </label>
-            <Link
-              to="/forgot-password"
-              className="text-orange-600 hover:underline"
-            >
+            <Link to="/forgot-password" className="text-orange-600 hover:underline">
               Forgot password?
             </Link>
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
             className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors cursor-pointer mt-2"
@@ -99,21 +128,19 @@ export default function Login({ onLogin }) {
             Login
           </button>
 
-          {/* Divider */}
           <div className="text-center text-gray-400 text-sm my-2">OR</div>
 
-          {/* Register Link */}
           <p className="text-center text-gray-600 text-sm">
             Don&apos;t have an account?{" "}
-            <Link
-              to="/register"
-              className="text-orange-600 font-medium hover:underline"
-            >
+            <Link to="/register" className="text-orange-600 font-medium hover:underline">
               Register
             </Link>
           </p>
         </form>
       </div>
+
+      {/* Toast container */}
+      <ToastContainer />
     </div>
   );
 }

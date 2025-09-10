@@ -4,8 +4,9 @@ db = SQLAlchemy()
 
 class BaseModel(db.Model):
     __abstract__ = True
-    
+
     def save(self):
+        """Save the object to the database"""
         db.session.add(self)
         try:
             db.session.commit()
@@ -14,8 +15,9 @@ class BaseModel(db.Model):
             db.session.rollback()
             print(f"Error saving: {e}")
             return False
-    
+
     def delete(self):
+        """Delete the object from the database"""
         db.session.delete(self)
         try:
             db.session.commit()
