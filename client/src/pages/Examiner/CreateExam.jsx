@@ -1,21 +1,27 @@
-
 import { useNavigate } from "react-router-dom";
 import { useState, useRef } from "react";
 
-
 export default function CreateExam() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("details");
 
   // Exam details state
   const [examName, setExamName] = useState("");
+  const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
-  const [className, setClassName] = useState("");
-  const [section, setSection] = useState("");
-  const [examDesc, setExamDesc] = useState("");
+  const [description, setDescription] = useState("");
   const [totalMarks, setTotalMarks] = useState("");
+  const [passingMarks, setPassingMarks] = useState("");
   const [totalTime, setTotalTime] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [attemptsAllowed, setAttemptsAllowed] = useState("1");
   const [negativeMarking, setNegativeMarking] = useState(false);
   const [negativeMarks, setNegativeMarks] = useState("");
+  const [backButtonAlert, setBackButtonAlert] = useState(false);
+  const [examinerName, setExaminerName] = useState("");
 
   // Questions state
   const [questions, setQuestions] = useState([
@@ -24,7 +30,7 @@ export default function CreateExam() {
       questionImage: null,
       options: ["", "", "", ""],
       optionImages: [null, null, null, null],
-      answer: "",
+      correctOption: null, // Changed from answer to correctOption
     },
   ]);
 
@@ -32,17 +38,23 @@ export default function CreateExam() {
   const [activePasteArea, setActivePasteArea] = useState(null);
   const fileInputRefs = useRef({});
 
-  const examTitle = `${examName}${chapter ? " - " + chapter : ""}${className ? " (" + className : ""
-    }${section ? " - " + section + ")" : className ? ")" : ""}`;
+  const examTitle = `${examName}${chapter ? " - " + chapter : ""}${subject ? " (" + subject : ""}${subject ? ")" : ""}`;
 
-  // Handlers
+  // Handlers for questions and options
   const handleQuestionChange = (index, field, value) => {
     const updatedQuestions = [...questions];
-    if (field === "question" || field === "answer") updatedQuestions[index][field] = value;
+    if (field === "question") updatedQuestions[index][field] = value;
     else if (field.startsWith("option-")) {
       const optIndex = parseInt(field.split("-")[1]);
       updatedQuestions[index].options[optIndex] = value;
     }
+    setQuestions(updatedQuestions);
+  };
+
+  // Handle selecting correct option
+  const handleCorrectOptionChange = (qIndex, optIndex) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[qIndex].correctOption = optIndex;
     setQuestions(updatedQuestions);
   };
 
@@ -61,38 +73,31 @@ export default function CreateExam() {
     setQuestions(updatedQuestions);
   };
 
+  // Handle paste image
+  const handlePasteImage = (qIndex, field, e) => {
+    e.preventDefault();
+    const items = e.clipboardData.items;
+    setActivePasteArea(`${qIndex}-${field}`);
 
-// Handle paste image
-const handlePasteImage = (qIndex, field, e) => {
-  e.preventDefault();
-  const items = e.clipboardData.items;
-  setActivePasteArea(`${qIndex}-${field}`);
-
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf("image") !== -1) {
-      const file = items[i].getAsFile();
-      handleImageChange(qIndex, field, file);
-
-      // Clear the active paste area after a short delay
-      setTimeout(() => setActivePasteArea(null), 1000);
-      return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        handleImageChange(qIndex, field, file);
+        setTimeout(() => setActivePasteArea(null), 1000);
+        return;
+      }
     }
-  }
 
-  // If no image, fallback to text
-  const text = e.clipboardData.getData("text");
-
-  if (field.startsWith("optionImage-")) {
-    // paste text into the option text field
-    const optIndex = parseInt(field.split("-")[1]);
-    handleQuestionChange(qIndex, `option-${optIndex}`, text);
-  } else {
-    handleQuestionChange(qIndex, field, text);
-  }
-
-  setTimeout(() => setActivePasteArea(null), 500);
-};
-
+    // If no image, fallback to text
+    const text = e.clipboardData.getData("text");
+    if (field.startsWith("optionImage-")) {
+      const optIndex = parseInt(field.split("-")[1]);
+      handleQuestionChange(qIndex, `option-${optIndex}`, text);
+    } else {
+      handleQuestionChange(qIndex, field, text);
+    }
+    setTimeout(() => setActivePasteArea(null), 500);
+  };
 
   // Remove image
   const removeImage = (index, field) => {
@@ -117,316 +122,540 @@ const handlePasteImage = (qIndex, field, e) => {
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { question: "", questionImage: null, options: ["", "", "", ""], optionImages: [null, null, null, null], answer: "" },
+      { question: "", questionImage: null, options: ["", "", "", ""], optionImages: [null, null, null, null], correctOption: null },
     ]);
   };
 
   const deleteQuestion = (qIndex) => setQuestions(questions.filter((_, i) => i !== qIndex));
 
+  // Check if all questions and options are filled
+  const isQuestionsValid = () => {
+    return questions.every(q => {
+      const hasQuestionText = q.question.trim() !== "";
+      const hasAllOptions = q.options.every(opt => opt.trim() !== "");
+      const hasCorrectOption = q.correctOption !== null;
+
+      return hasQuestionText && hasAllOptions && hasCorrectOption;
+    });
+  };
+
   const handleCreateExam = () => {
-    const examData = { examTitle, examDesc, totalMarks, totalTime, negativeMarking, negativeMarks: negativeMarking ? negativeMarks : 0, questions };
+    if (!isQuestionsValid()) {
+      alert("Please fill all questions, options, and mark correct answers before creating the exam.");
+      return;
+    }
+
+    const examData = {
+      examTitle,
+      subject,
+      chapter,
+      description,
+      totalMarks,
+      passingMarks,
+      totalTime,
+      startDate: startDate && startTime ? `${startDate}T${startTime}` : "",
+      endDate: endDate && endTime ? `${endDate}T${endTime}` : "",
+      attemptsAllowed,
+      negativeMarking,
+      negativeMarks: negativeMarking ? negativeMarks : 0,
+      backButtonAlert,
+      examinerName,
+      questions
+    };
     console.log("Exam Created:", examData);
     alert("Exam created! Check console for details.");
   };
 
   const handleCancelExam = () => {
     if (window.confirm("Are you sure you want to cancel? All unsaved changes will be lost.")) {
-      navigate(-1); // Go back to previous page
+      navigate(-1);
     }
   };
 
+  // Validation for required fields
+  const isDetailsValid = examName && subject && chapter && totalMarks && totalTime;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12 pt-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+        <div className="text-center mb-6 pt-12">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Create New Exam
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-gray-600 max-w-2xl mx-auto text-sm">
             Design your custom exam with questions, options, and images
           </p>
         </div>
 
-        {/* Exam Details Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-10 border border-gray-100">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <span className="bg-blue-100 p-2 rounded-lg mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </span>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "details" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            onClick={() => setActiveTab("details")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             Exam Details
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-            {[
-              { label: "Exam Name", value: examName, setter: setExamName },
-              { label: "Chapter", value: chapter, setter: setChapter },
-              { label: "Class", value: className, setter: setClassName },
-              { label: "Section", value: section, setter: setSection }
-            ].map((item, i) => (
-              <div key={i} className="relative">
-                <input
-                  type="text"
-                  placeholder={item.label}
-                  value={item.value}
-                  onChange={(e) => item.setter(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Exam Description</label>
-            <textarea
-              placeholder="Enter a description for your exam..."
-              value={examDesc}
-              onChange={(e) => setExamDesc(e.target.value)}
-              rows={3}
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition duration-200"
-            />
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-xl mb-6">
-            <p className="text-sm font-medium text-blue-800">
-              <span className="font-semibold">Exam Title:</span> {examTitle || "Your exam title will appear here"}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Total Marks</label>
-              <input
-                type="number"
-                placeholder="100"
-                value={totalMarks}
-                onChange={(e) => setTotalMarks(e.target.value)}
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Total Time (minutes)</label>
-              <input
-                type="number"
-                placeholder="60"
-                value={totalTime}
-                onChange={(e) => setTotalTime(e.target.value)}
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gray-50 rounded-xl">
-            <label className="flex items-center gap-3 font-medium text-gray-700">
-              <div className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={negativeMarking}
-                  onChange={(e) => setNegativeMarking(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-              </div>
-              Negative marking for wrong answers
-            </label>
-            {negativeMarking && (
-              <div className="sm:ml-auto">
-                <input
-                  type="number"
-                  placeholder="Negative marks per question"
-                  value={negativeMarks}
-                  onChange={(e) => setNegativeMarks(e.target.value)}
-                  className="p-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-48 transition duration-200"
-                />
-              </div>
+          </button>
+          <button
+            className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "questions" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            onClick={() => setActiveTab("questions")}
+            disabled={!isDetailsValid}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Questions
+            {!isDetailsValid && (
+              <span className="ml-2 text-xs text-red-500">(Complete details first)</span>
             )}
-          </div>
+          </button>
         </div>
 
-        {/* Questions Section */}
-        <div className="space-y-8">
-          {questions.map((q, qIndex) => (
-            <div key={qIndex} className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <span className="bg-green-100 text-green-800 p-2 rounded-lg mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </span>
-                  Question {qIndex + 1}
-                </h3>
-                {questions.length > 1 && (
-                  <button
-                    onClick={() => deleteQuestion(qIndex)}
-                    className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition duration-200"
-                    title="Delete question"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
-              </div>
+        {/* Tab Content */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+          {activeTab === "details" ? (
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
 
-              {/* Question Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
-                <div
-                  className={`p-4 bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-blue-500' : ''}`}
-                  onPaste={(e) => handlePasteImage(qIndex, "questionImage", e)}
-                >
-                  <textarea
-                    value={q.question}
-                    onChange={(e) => handleQuestionChange(qIndex, "question", e.target.value)}
-                    rows={4}
-                    placeholder="Enter your question here or paste an image with Ctrl+V..."
-                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
-                  />
-                </div>
-              </div>
-
-              {/* Question Image */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Question Image (Optional)</label>
-                {q.questionImage ? (
-                  <div className="relative inline-block">
-                    <img src={q.questionImage} alt="question" className="w-40 h-40 object-contain border rounded-xl shadow-sm" />
-                    <button
-                      onClick={() => removeImage(qIndex, "questionImage")}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
-                      title="Remove image"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <label className="cursor-pointer bg-blue-100 text-blue-700 px-5 py-3 rounded-xl hover:bg-blue-200 transition duration-200 shadow-sm flex items-center"
-
-                      onClick={() => triggerFileInput(qIndex, "questionImage")}
-
-
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      Upload Image
-                      <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, "questionImage", e.target.files[0])} className="hidden" />
-                    </label>
-                    <span className="text-sm text-gray-500">or paste image with Ctrl+V</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Options */}
-              <div className="mb-8">
-                <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <span className="bg-blue-100 p-2 rounded-lg mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Options
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {q.options.map((opt, optIndex) => (
-                    <div key={optIndex} className="bg-gray-50 p-5 rounded-xl border border-gray-200 hover:bg-gray-100 transition duration-200">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Option {optIndex + 1}</label>
-                      <div
-                        className={`mb-3 ${activePasteArea === `${qIndex}-optionImage-${optIndex}` ? 'ring-2 ring-blue-500 rounded-lg' : ''}`}
-                        onPaste={(e) => handlePasteImage(qIndex, `optionImage-${optIndex}`, e)}
-                      >
-                        <input
-                          type="text"
-                          value={opt}
-                          onChange={(e) => handleQuestionChange(qIndex, `option-${optIndex}`, e.target.value)}
-                          placeholder='Type text or paste image'
-                          className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                        />
-                      </div>
+                </span>
+                Exam Details
+              </h2>
 
-
-                      <div className="mt-3">
-                        {q.optionImages[optIndex] ? (
-                          <div className="relative inline-block">
-                            <img src={q.optionImages[optIndex]} alt={`option-${optIndex}`} className="w-24 h-24 object-contain border rounded-lg shadow-sm" />
-                            <button
-                              onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
-                              title="Remove image"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <label className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 flex items-center transition duration-200"
-                            onClick={() => triggerFileInput(qIndex, `optionImage-${optIndex}`)}
-
-                          >
-
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Add image
-                            <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e.target.files[0])} className="hidden" />
-                          </label>
-                        )}
-                      </div>
+              {/* Required Fields */}
+              <div className="mb-4">
+                <h3 className="text-base font-medium text-gray-800 mb-3">Required Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {[
+                    { label: "Exam Name*", value: examName, setter: setExamName },
+                    { label: "Subject/Course Name*", value: subject, setter: setSubject },
+                    { label: "Chapter/Topic*", value: chapter, setter: setChapter },
+                    { label: "Total Marks*", value: totalMarks, setter: setTotalMarks, type: "number" },
+                    { label: "Total Time (minutes)*", value: totalTime, setter: setTotalTime, type: "number" },
+                  ].map((item, i) => (
+                    <div key={i} className="relative">
+                      <input
+                        type={item.type || "text"}
+                        placeholder={item.label}
+                        value极速11选5有什么规律={item.value}
+                        onChange={(e) => item.setter(e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                        required
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Answer */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Correct Answer</label>
-                <div
-                  className="p-4 bg-green-50 border border-green-200 rounded-xl focus-within:ring-2 focus-within:ring-green-500 focus-within:border-transparent transition duration-200"
-                  onPaste={(e) => handlePasteImage(qIndex, "answer", e)}
+              {/* Description */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description / Instructions</label>
+                <textarea
+                  placeholder="Enter exam instructions or description..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition duration-200 text-sm"
+                />
+              </div>
+
+              {/* Additional Details */}
+              <div className="mb-4">
+                <h3 className="text-base font-medium text-gray-800 mb-3">Additional Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Passing Marks</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Pass mark 40%"
+                      value={passingMarks}
+                      onChange={(e) => setPassingMarks(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Examiner Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter examiner name"
+                      value={examinerName}
+                      onChange={(e) => setExaminerName(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                      />
+                      <input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date & Time</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                      />
+                      <input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Attempts Allowed</label>
+                    <select
+                      value={attemptsAllowed}
+                      onChange={(e) => setAttemptsAllowed(e.target.value)}
+                      className="w-full p-3 bg-gray极速11选5有什么规律-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                    >
+                      <option value="1">Single attempt</option>
+                      <option value="multiple">Multiple attempts</option>
+                      <option value="unlimited">Unlimited attempts</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                <p className="text-xs font-medium text-blue-800">
+                  <span className="font-semibold">Exam Title:</span> {examTitle || "Your exam title will appear here"}
+                </p>
+              </div>
+
+              {/* Negative Marking */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg mb-3">
+                <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={negativeMarking}
+                      onChange={(e) => setNegativeMarking(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                  </div>
+                  Negative marking for each wrong answer
+                </label>
+                {negativeMarking && (
+                  <div className="sm:ml-auto">
+                    <input
+                      type="number"
+                      placeholder="e.g., 0.25"
+                      value={negativeMarks}
+                      onChange={(e) => setNegativeMarks(e.target.value)}
+                      className="p-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-40 transition duration-200 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Back Button Alert */}
+              {/* <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={backButtonAlert}
+                      onChange={(e) => setBackButtonAlert(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                  </div>
+                  Show alert when students click back button
+                </label>
+              </div> */}
+
+              {/* Next Button */}
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setActiveTab("questions")}
+                  disabled={!isDetailsValid}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm"
                 >
-                  <input
-                    type="text"
-                    value={q.answer}
-                    onChange={(e) => handleQuestionChange(qIndex, "answer", e.target.value)}
-                    placeholder="Enter the correct answer..."
-                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0"
-                  />
+                  Next: Questions & Options
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center justify-center">
+                <span className="bg-green-100 p-2 rounded-lg mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </span>
+                Create Questions
+              </h2>
+
+              {/* Instructions */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <h3 className="font-medium text-yellow-800 flex items-center mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Instructions
+                </h3>
+                <ul className="text-yellow-700 text-sm list-disc pl-5 space-y-1">
+                  <li>Fill all question texts and options</li>
+                  <li>Click the radio button next to the correct option to mark it as the right answer</li>
+                  <li>Add images to questions or options if needed (optional)</li>
+                </ul>
+              </div>
+
+              {/* Questions Section */}
+              <div className="space-y-6">
+                {questions.map((q, qIndex) => (
+                  <div key={qIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                        {/* <span className="bg-green-100 text-green-800 p-1 rounded mr-2 text-xs">
+                          {qIndex + 1}
+                        </span> */}
+                        Question {qIndex + 1}
+                      </h3>
+                      {questions.length > 1 && (
+                        <button
+                          onClick={() => deleteQuestion(qIndex)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition duration-200"
+                          title="Delete question"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Question Input */}
+                    <div className="mb-4">
+                      {/* <label className="block text-sm font-medium text-gray-700 mb-2">Question Text *</label> */}
+                      <div
+                        className={`p-3 bg-white border ${q.question.trim() === "" ? "border-red-300" : "border-gray-300"} rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-blue-500' : ''}`}
+                        onPaste={(e) => handlePasteImage(qIndex, "questionImage", e)}
+                      >
+                        <textarea
+                          value={q.question}
+                          onChange={(e) => handleQuestionChange(qIndex, "question", e.target.value)}
+                          rows={3}
+                          placeholder="Type your question here or paste an image with Ctrl+V..."
+                          className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none text-sm"
+                          required
+                        />
+                      </div>
+                      {q.question.trim() === "" && (
+                        <p className="text-red-500 text-xs mt-1">Question text is required</p>
+                      )}
+                    </div>
+
+                    {/* Question Image */}
+                    <div className="mb-6">
+                      {/* <label className="block text-sm font-medium text-gray-700 mb-2">Question Image</label> */}
+                      {q.questionImage ? (
+                        <div className="relative inline-block">
+                          <img src={q.questionImage} alt="question" className="w-32 h-32 object-contain border rounded-lg shadow-sm" />
+                          <button
+                            onClick={() => removeImage(qIndex, "questionImage")}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
+                            title="Remove image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <label className="cursor-pointer bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition duration-200 shadow-sm flex items-center text-xs"
+                            onClick={() => triggerFileInput(qIndex, "questionImage")}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+
+                            </svg>
+                            Upload Question Image
+                            <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, "questionImage", e.target.files[0])} className="hidden" />
+                          </label>
+                          {/* <span className="text-xs text-gray-500">or paste image with Ctrl+V</span> */}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Options */}
+                    <div className="mb-6">
+                      <h4 className="text-base font-medium text-gray-800 mb-3 flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-2 text-purple-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+
+                        Options * (Select the correct one)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {q.options.map((opt, optIndex) => (
+                          <div key={optIndex} className="bg-white p-4 rounded-lg border border-gray-300">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-sm font-medium text-gray-700">Option {optIndex + 1}</label>
+                              <label className="flex items-center text-sm text-green-600 font-medium">
+                                <input
+                                  type="radio"
+                                  name={`correct-option-${qIndex}`}
+                                  checked={q.correctOption === optIndex}
+                                  onChange={() => handleCorrectOptionChange(qIndex, optIndex)}
+                                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                                />
+                                <span className="ml-1 cursor-pointer">Correct</span>
+                              </label>
+                            </div>
+                            <div
+                              className={`mb-3 ${activePasteArea === `${qIndex}-optionImage-${optIndex}` ? 'ring-2 ring-blue-500 rounded-lg' : ''}`}
+                              onPaste={(e) => handlePasteImage(qIndex, `optionImage-${optIndex}`, e)}
+                            >
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => handleQuestionChange(qIndex, `option-${optIndex}`, e.target.value)}
+                                placeholder='Type text or paste image'
+                                className={`w-full p-2 bg-gray-50 border ${opt.trim() === "" ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
+                                required
+                              />
+                              {opt.trim() === "" && (
+                                <p className="text-red-500 text-xs mt-1">Option text is required</p>
+                              )}
+                            </div>
+
+                            <div className="mt-2">
+                              {q.optionImages[optIndex] ? (
+                                <div className="relative inline-block">
+                                  <img src={q.optionImages[optIndex]} alt={`option-${optIndex}`} className="w-20 h-20 object-contain border rounded-lg shadow-sm" />
+                                  <button
+                                    onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
+                                    title="Remove image"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 flex items-center transition duration-200"
+                                  onClick={() => triggerFileInput(qIndex, `optionImage-${optIndex}`)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                  </svg>
+                                  Add image
+                                  <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e.target.files[0])} className="hidden" />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {q.correctOption === null && (
+                        <p className="text-red-500 text-xs mt-2">Please select the correct option</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Question Button */}
+                <button
+                  onClick={addQuestion}
+                  className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center mt-4 text-sm cursor-pointer"
+
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+
+                  Add New Question
+                </button>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="flex flex-wrap gap-3 justify-between mt-8">
+                <button
+                  onClick={() => setActiveTab("details")}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Details
+                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleCancelExam}
+                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel Exam
+                  </button>
+                  <button
+                    onClick={handleCreateExam}
+                    disabled={!isQuestionsValid()}
+                    className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Create Exam
+                  </button>
                 </div>
               </div>
             </div>
-          ))}
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center mt-10">
-            <button
-              onClick={addQuestion}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg transition transform hover:scale-105 duration-300 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add New Question
-            </button>
-            <button
-              onClick={handleCreateExam}
-              className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg transition transform hover:scale-105 duration-300 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Create Exam
-            </button>
-            <button
-              onClick={handleCancelExam}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg transition transform hover:scale-105 duration-300 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Cancel Exam
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>
