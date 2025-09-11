@@ -1,5 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
+import axios from "axios"; // Added for API calls
+import { GlobalContext } from "../../context/GlobalContext";
+
 
 export default function CreateExam() {
   const navigate = useNavigate();
@@ -9,6 +12,7 @@ export default function CreateExam() {
   const [examName, setExamName] = useState("");
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
+  const [classes, setClasses] = useState("");
   const [description, setDescription] = useState("");
   const [totalMarks, setTotalMarks] = useState("");
   const [passingMarks, setPassingMarks] = useState("");
@@ -20,17 +24,26 @@ export default function CreateExam() {
   const [attemptsAllowed, setAttemptsAllowed] = useState("1");
   const [negativeMarking, setNegativeMarking] = useState(false);
   const [negativeMarks, setNegativeMarks] = useState("");
-  const [backButtonAlert, setBackButtonAlert] = useState(false);
   const [examinerName, setExaminerName] = useState("");
+
+  //get user
+  const { user, token } = useContext(GlobalContext);
+  const user_id = user.id
+  // console.log("user id: ",user)
+  // In your component, add this debug log
+  console.log("Token:", token);
+  console.log("User:", user);
 
   // Questions state
   const [questions, setQuestions] = useState([
     {
       question: "",
-      questionImage: null,
+      questionImage: null, // ✅ Store File object for upload
+      questionImagePreview: null, // ✅ Store preview URL
       options: ["", "", "", ""],
-      optionImages: [null, null, null, null],
-      correctOption: null, // Changed from answer to correctOption
+      optionImages: [null, null, null, null], // ✅ Store File object
+      optionImagesPreview: [null, null, null, null], // ✅ Store preview URL
+      correctOption: null,
     },
   ]);
 
@@ -58,20 +71,25 @@ export default function CreateExam() {
     setQuestions(updatedQuestions);
   };
 
-  // Handle image upload
+  // ✅ Updated to store File object and preview
   const handleImageChange = (index, field, file) => {
     if (!file) return;
     const updatedQuestions = [...questions];
-    const imageUrl = URL.createObjectURL(file);
+
+    const imageUrl = URL.createObjectURL(file); // For preview
 
     if (field === "questionImage") {
-      updatedQuestions[index].questionImage = imageUrl;
+      updatedQuestions[index].questionImage = file; // Store File for upload
+      updatedQuestions[index].questionImagePreview = imageUrl; // Store preview
     } else if (field.startsWith("optionImage-")) {
       const optIndex = parseInt(field.split("-")[1]);
-      updatedQuestions[index].optionImages[optIndex] = imageUrl;
+      updatedQuestions[index].optionImages[optIndex] = file; // Store File
+      updatedQuestions[index].optionImagesPreview[optIndex] = imageUrl; // Preview
     }
+
     setQuestions(updatedQuestions);
   };
+
 
   // Handle paste image
   const handlePasteImage = (qIndex, field, e) => {
@@ -104,12 +122,15 @@ export default function CreateExam() {
     const updatedQuestions = [...questions];
     if (field === "questionImage") {
       updatedQuestions[index].questionImage = null;
+      updatedQuestions[index].questionImagePreview = null; // ✅ remove preview
     } else if (field.startsWith("optionImage-")) {
       const optIndex = parseInt(field.split("-")[1]);
       updatedQuestions[index].optionImages[optIndex] = null;
+      updatedQuestions[index].optionImagesPreview[optIndex] = null; // ✅ remove preview
     }
     setQuestions(updatedQuestions);
   };
+
 
   // Trigger file input programmatically
   const triggerFileInput = (qIndex, field) => {
@@ -122,7 +143,15 @@ export default function CreateExam() {
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { question: "", questionImage: null, options: ["", "", "", ""], optionImages: [null, null, null, null], correctOption: null },
+      {
+        question: "",
+        questionImage: null,
+        questionImagePreview: null,
+        options: ["", "", "", ""],
+        optionImages: [null, null, null, null],
+        optionImagesPreview: [null, null, null, null],
+        correctOption: null,
+      },
     ]);
   };
 
@@ -139,31 +168,92 @@ export default function CreateExam() {
     });
   };
 
-  const handleCreateExam = () => {
+  // ✅ Updated handleCreateExam to connect with backend + Cloudinary
+  const handleCreateExam = async () => {
     if (!isQuestionsValid()) {
       alert("Please fill all questions, options, and mark correct answers before creating the exam.");
       return;
     }
 
-    const examData = {
-      examTitle,
-      subject,
-      chapter,
-      description,
-      totalMarks,
-      passingMarks,
-      totalTime,
-      startDate: startDate && startTime ? `${startDate}T${startTime}` : "",
-      endDate: endDate && endTime ? `${endDate}T${endTime}` : "",
-      attemptsAllowed,
-      negativeMarking,
-      negativeMarks: negativeMarking ? negativeMarks : 0,
-      backButtonAlert,
-      examinerName,
-      questions
-    };
-    console.log("Exam Created:", examData);
-    alert("Exam created! Check console for details.");
+    try {
+      const formData = new FormData();
+
+      // Prepare JSON data for exam + questions + options
+      const examData = {
+        exam_name: examName,
+        subject,
+        class_name: classes,
+        chapter,
+        description,
+        total_marks: parseFloat(totalMarks),
+        passing_marks: passingMarks ? parseFloat(passingMarks) : null,
+        total_time_minutes: parseFloat(totalTime),
+        start_datetime: startDate && startTime ? `${startDate}T${startTime}:00` : null,
+        end_datetime: endDate && endTime ? `${endDate}T${endTime}:00` : null,
+        attempts_allowed: attemptsAllowed,
+        negative_marks_value: negativeMarking ? parseFloat(negativeMarks) : 0,
+        examiner_name: examinerName,
+        questions: questions.map((q, qIdx) => ({
+          question_text: q.question,
+          question_order: qIdx + 1,
+          marks: 1, // or calculate based on your logic
+          optA_text: q.options[0],
+          optB_text: q.options[1],
+          optC_text: q.options[2],
+          optD_text: q.options[3],
+          correct_answer: ["A", "B", "C", "D"][q.correctOption]
+        }))
+      };
+
+      formData.append("exam_data", JSON.stringify(examData));
+
+      // Append question images
+      questions.forEach((q, qIdx) => {
+        if (q.questionImage) {
+          formData.append(`question_${qIdx + 1}_image`, q.questionImage);
+        }
+
+        // Append option images - FIXED: use correct naming convention
+        q.optionImages.forEach((optImg, optIdx) => {
+          if (optImg) {
+            const optionLetter = ["A", "B", "C", "D"][optIdx];
+            formData.append(`question_${qIdx + 1}_opt${optionLetter}_image`, optImg);
+          }
+        });
+      });
+
+      console.log("Sending request with token:", token);
+
+      // Send the request - DON'T set Content-Type header manually for FormData
+      const response = await axios.post(
+        "http://127.0.0.1:5000/api/exam/create-exam",
+        formData,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            // Let browser set Content-Type with boundary for multipart/form-data
+          }
+        }
+      );
+
+      if (response.data.status === "success") {
+        alert("Exam created successfully!");
+        navigate("/examiner/showexams");
+      } else {
+        alert("Failed to create exam: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Error creating exam:", err);
+      console.error("Error response:", err.response);
+
+      if (err.response && err.response.status === 401) {
+        alert("Authentication failed. Please log in again.");
+        // Optionally redirect to login page
+        // navigate("/login");
+      } else {
+        alert("Failed to create exam. See console for details.");
+      }
+    }
   };
 
   const handleCancelExam = () => {
@@ -236,6 +326,7 @@ export default function CreateExam() {
                     { label: "Exam Name*", value: examName, setter: setExamName },
                     { label: "Subject/Course Name*", value: subject, setter: setSubject },
                     { label: "Chapter/Topic*", value: chapter, setter: setChapter },
+                    { label: "Class/Section*", value: classes, setter: setClasses },
                     { label: "Total Marks*", value: totalMarks, setter: setTotalMarks, type: "number" },
                     { label: "Total Time (minutes)*", value: totalTime, setter: setTotalTime, type: "number" },
                   ].map((item, i) => (
@@ -243,7 +334,7 @@ export default function CreateExam() {
                       <input
                         type={item.type || "text"}
                         placeholder={item.label}
-                        value极速11选5有什么规律={item.value}
+                        value={item.value}
                         onChange={(e) => item.setter(e.target.value)}
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
                         required
@@ -334,7 +425,7 @@ export default function CreateExam() {
                     <select
                       value={attemptsAllowed}
                       onChange={(e) => setAttemptsAllowed(e.target.value)}
-                      className="w-full p-3 bg-gray极速11选5有什么规律-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
                     >
                       <option value="1">Single attempt</option>
                       <option value="multiple">Multiple attempts</option>
@@ -376,22 +467,6 @@ export default function CreateExam() {
                   </div>
                 )}
               </div>
-
-              {/* Back Button Alert */}
-              {/* <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={backButtonAlert}
-                      onChange={(e) => setBackButtonAlert(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                  </div>
-                  Show alert when students click back button
-                </label>
-              </div> */}
 
               {/* Next Button */}
               <div className="flex justify-end mt-6">
@@ -483,7 +558,7 @@ export default function CreateExam() {
                       {/* <label className="block text-sm font-medium text-gray-700 mb-2">Question Image</label> */}
                       {q.questionImage ? (
                         <div className="relative inline-block">
-                          <img src={q.questionImage} alt="question" className="w-32 h-32 object-contain border rounded-lg shadow-sm" />
+                          <img src={q.questionImagePreview} alt="question" className="w-32 h-32 object-contain border rounded-lg shadow-sm" />
                           <button
                             onClick={() => removeImage(qIndex, "questionImage")}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
@@ -565,7 +640,7 @@ export default function CreateExam() {
                             <div className="mt-2">
                               {q.optionImages[optIndex] ? (
                                 <div className="relative inline-block">
-                                  <img src={q.optionImages[optIndex]} alt={`option-${optIndex}`} className="w-20 h-20 object-contain border rounded-lg shadow-sm" />
+                                  <img src={q.optionImagesPreview[optIndex]} alt={`option-${optIndex}`} className="w-20 h-20 object-contain border rounded-lg shadow-sm" />
                                   <button
                                     onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
                                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"

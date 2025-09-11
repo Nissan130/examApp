@@ -12,7 +12,10 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Enable CORS for all routes
+     # Enable CORS for all routes
+    # Enable CORS for all routes
     CORS(app, resources={r"/*": {"origins": "*"}})
+
 
 
     # Initialize database and migrations
@@ -37,6 +40,13 @@ def create_app(config_class=Config):
     @app.shell_context_processor
     def make_shell_context():
         from .models import User
-        return {'db': db, 'User': User}
+        from .models import db, User, Exam, Question, Option, ExamAttempt, Answer
+        return {
+        'db': db,
+        'User': User,
+        'Exam': Exam,
+        'Question': Question,
+    }
+
 
     return app

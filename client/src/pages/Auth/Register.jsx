@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify"; // Import ToastContainer & toast
-import "react-toastify/dist/ReactToastify.css";          // Import CSS
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Register({ onRegister }) {
   const [name, setName] = useState("");
@@ -15,36 +15,37 @@ export default function Register({ onRegister }) {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/users/", {
+      const response = await fetch("http://127.0.0.1:5000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
 
       const data = await response.json();
-      const userWithRole = { ...data.user, role: "examinee" };
 
       if (response.ok) {
+        // Set role on frontend
+        const userWithRole = { ...data.user, role: "examinee" };
+
         // Call parent callback
         onRegister(userWithRole);
+
+        // Save token (session by default)
+        sessionStorage.setItem("token", data.token);
 
         // Show success toast
         toast.success("✅ Successfully registered!", {
           position: "top-right",
-          autoClose: 2000, // closes automatically after 2 seconds
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+          autoClose: 2000,
         });
 
-        // Redirect after a short delay
+        // Navigate to dashboard after short delay
         setTimeout(() => {
           navigate("/examinee/dashboard");
         }, 2000);
       } else {
         setError(data.error || "Failed to register user");
+        toast.error(data.error || "Failed to register user");
       }
     } catch (err) {
       console.error("Error connecting to backend:", err);
@@ -64,6 +65,10 @@ export default function Register({ onRegister }) {
             Create your account to get started
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
+        )}
 
         <form onSubmit={handleRegister} className="w-full space-y-4">
           <div>
@@ -120,7 +125,6 @@ export default function Register({ onRegister }) {
         </form>
       </div>
 
-      {/* Toast Container (required) */}
       <ToastContainer />
     </div>
   );

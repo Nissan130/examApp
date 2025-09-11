@@ -1,12 +1,17 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
+import { GlobalContext } from "../context/GlobalContext";
 
-export default function Navbar({ user, setUser, onLogout }) {
-  const [profileOpen, setProfileOpen] = useState(false); // profile dropdown
-  const navigate = useNavigate();
+export default function Navbar() {
+  const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef();
+  const navigate = useNavigate();
 
+  // Get user & logout from global context
+  const { user, setUser, logout } = useContext(GlobalContext);
+
+  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
@@ -17,9 +22,10 @@ export default function Navbar({ user, setUser, onLogout }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Logout function
   const handleLogout = () => {
-    onLogout();
-    navigate("/login");
+    logout(); // clears token & user
+    navigate("/login"); // redirect AFTER clearing
   };
 
   // Switch role between examinee <-> examiner
@@ -32,6 +38,7 @@ export default function Navbar({ user, setUser, onLogout }) {
     }
   };
 
+  // Navigate when title clicked
   const handleTitleClick = () => {
     if (!user) {
       navigate("/"); // landing page
@@ -82,7 +89,7 @@ export default function Navbar({ user, setUser, onLogout }) {
               {profileOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg py-2">
                   <p className="px-4 py-2 text-sm text-gray-700">
-                    Hello, {user.email.split("@")[0]}
+                    Hello, {user?.email ? user.email.split("@")[0] : "User"}
                   </p>
                   <hr />
                   <button

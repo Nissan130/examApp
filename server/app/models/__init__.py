@@ -1,11 +1,14 @@
 # Import database instance
 from .base_model import db
 
-# Import all models from sub-folders
+# Import all models from subfolders
 from .authModels import User
+from .examinerModels.createExamModels import Exam, Question
 
-# Optional: add other subfolder models here
-# from .examineeModels import Examinee
-# from .examinerModels import Examiner
+__all__ = [
+    'db',
+    'User',
+    'Exam',
+    'Question',
+]
 
-__all__ = ['db', 'User']

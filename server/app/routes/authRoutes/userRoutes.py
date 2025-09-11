@@ -1,21 +1,63 @@
 from flask import Blueprint, request, jsonify
 from app.models import User, db
-from app.utils.jwt_utils import generate_jwt
+from app.utils.jwt_utils import generate_jwt, decode_jwt
+from functools import wraps
+
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
-user_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
-@user_bp.route('/', methods=['GET'])
+
+
+import uuid
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # Check for token in headers
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+        
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        
+        # Decode token
+        payload = decode_jwt(token)
+        if not payload:
+            return jsonify({'message': 'Token is invalid or expired!'}), 401
+        
+        # Get user from database
+        user = User.query.get(payload['user_id'])
+        if not user:
+            return jsonify({'message': 'User not found!'}), 401
+        
+        return f(user, *args, **kwargs)
+    
+    return decorated
+
+
+# ----------------------------
+# GET all users
+# ----------------------------
+@auth_bp.route('/users', methods=['GET'])
 def get_all_users():
     try:
         users = User.query.all()
         users_list = [u.to_dict() for u in users]
         return jsonify({'users': users_list, 'count': len(users_list)})
-    except Exception:
-        return jsonify({'error': 'Failed to fetch users'}), 500
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch users', 'details': str(e)}), 500
 
-# ========== Register Route ========
-@user_bp.route('/', methods=['POST'])
+
+# ----------------------------
+# Register User
+# ----------------------------
+@auth_bp.route('/register', methods=['POST'])
 def create_user():
     data = request.get_json()
     if not data:
@@ -38,10 +80,10 @@ def create_user():
     return jsonify({'message': 'User created successfully', 'user': user.to_dict()}), 201
 
 
-# ========= Login Route ========
-login_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
-
-@login_bp.route('/login', methods=['POST'])
+# ----------------------------
+# Login
+# ----------------------------
+@auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     if not data:
@@ -60,36 +102,11 @@ def login():
     if not user.check_password(password):
         return jsonify({'error': 'Invalid password'}), 401
 
-    # JWT generate করো
-    token = generate_jwt(user.id)
+    # Convert UUID to string for JWT
+    token = generate_jwt(str(user.id))
 
     return jsonify({
         'message': 'Login successful',
         'token': token,
         'user': user.to_dict()
     }), 200
-
-
-from functools import wraps
-from flask import request, jsonify
-from app.utils.jwt_utils import decode_jwt
-from app.models import User
-
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
-
-        payload = decode_jwt(token)
-        if not payload:
-            return jsonify({'error': 'Token is invalid or expired'}), 401
-
-        # Optional: set current_user
-        user = User.query.get(payload['user_id'])
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
-        return f(user, *args, **kwargs)
-    return decorated

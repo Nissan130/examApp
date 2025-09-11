@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 
 export default function ExaminerDashboard() {
   const actions = [
-    { title: "Create New Exam", link: "/examiner/create", color: "bg-green-500 hover:bg-green-600" },
-    { title: "Show Exams", link: "/examiner/showexams", color: "bg-blue-500 hover:bg-blue-600" },
+    { title: "Create New Exam", link: "/examiner/create-exam", color: "bg-green-500 hover:bg-green-600" },
+    { title: "Created Exams", link: "/examiner/all-created-exam", color: "bg-blue-500 hover:bg-blue-600" },
     // { title: "View Results", link: "/examiner/results", color: "bg-purple-500 hover:bg-purple-600" },
     // { title: "Manage Questions", link: "/examiner/questions", color: "bg-yellow-500 hover:bg-yellow-600" },
   ];

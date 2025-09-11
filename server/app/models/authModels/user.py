@@ -1,13 +1,14 @@
 from ..base_model import db, BaseModel
 from werkzeug.security import generate_password_hash, check_password_hash
-import uuid # for generating random user id
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 from datetime import datetime
 
 
 class User(BaseModel):
     __tablename__ = 'users'
 
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     name = db.Column(db.String(120), unique=False, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
