@@ -1,12 +1,15 @@
 // context/GlobalContext.jsx
 import { createContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useCustomAlert } from "./CustomAlertContext";
 
 // Create context
 export const GlobalContext = createContext();
 
 // Provider component
 export const GlobalProvider = ({ children }) => {
+
+  const custom_alert = useCustomAlert();
   const [user, setUser] = useState(null); // store full user object
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,8 @@ export const GlobalProvider = ({ children }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Invalid email or password");
+        // toast.error(data.error || "Invalid email or password");
+        custom_alert.error(data.error || "Invalid email or password");
         return false;
       }
 
@@ -71,7 +75,7 @@ export const GlobalProvider = ({ children }) => {
         sessionStorage.setItem("user", JSON.stringify(userWithRole));
       }
 
-      toast.success("✅ Successfully logged in!", { position: "top-right", autoClose: 2000 });
+      custom_alert.success("Successfully logged in!");
       return true;
     } catch (err) {
       console.error("Error connecting to backend:", err);

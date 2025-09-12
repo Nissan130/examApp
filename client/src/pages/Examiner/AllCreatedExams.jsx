@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Eye, BarChart, Copy, Check, Plus, Loader, Trash2 } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
+import ConfirmDialog from "../../components/CustomConfirm";
+import { useCustomAlert } from "../../context/CustomAlertContext";
 
 // Reusable Tooltip Component
 const Tooltip = ({ children, text }) => (
@@ -28,6 +30,12 @@ export default function AllCreatedExams() {
     has_next: false,
     has_prev: false
   });
+
+ // Add these state variables for the confirmation dialog
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [examToDelete, setExamToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const custom_alert = useCustomAlert();
 
   useEffect(() => {
     fetchMyExams();
@@ -71,6 +79,49 @@ export default function AllCreatedExams() {
       .catch(() => alert("Failed to copy link."));
   };
 
+
+ 
+  const confirmDelete = (examId, examName) => {
+    setExamToDelete({ id: examId, name: examName });
+    setShowDeleteConfirm(true);
+  };
+
+  const deleteExam = async () => {
+    if (!examToDelete) return;
+
+    try {
+      setDeleting(true);
+      const response = await axios.delete(
+        `http://127.0.0.1:5000/api/exam/my-created-exams/delete-exam/${examToDelete.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        custom_alert.success("Exam deleted successfully!");
+        // Refresh the exams list
+        fetchMyExams(pagination.page);
+      } else {
+        custom_alert.error("Failed to delete exam: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Error deleting exam:", err);
+      custom_alert.error("Failed to delete exam. Please try again.");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      setExamToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setExamToDelete(null);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -92,6 +143,21 @@ export default function AllCreatedExams() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+
+      {/* Add the confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={deleteExam}
+        title="Delete Exam"
+        message={`Are you sure you want to delete the exam "${examToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        isLoading={deleting}
+      />
+
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-12">
@@ -181,7 +247,6 @@ export default function AllCreatedExams() {
                       </Link>
                     </Tooltip>
 
-
                     <Tooltip text="View Results">
                       <Link
                         to={`/examiner/results/${exam.exam_id}`}
@@ -199,9 +264,10 @@ export default function AllCreatedExams() {
                         {copiedExamId === exam.exam_id ? <Check size={18} /> : <Copy size={18} />}
                       </button>
                     </Tooltip>
+
                     <Tooltip text="Delete Exam">
                       <button
-                        onClick={() => deleteExam(exam.exam_id)}
+                        onClick={() => confirmDelete(exam.exam_id, exam.exam_name)}
                         className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md transition transform hover:scale-110 duration-200 flex items-center justify-center cursor-pointer"
                       >
                         <Trash2 size={18} />

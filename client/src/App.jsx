@@ -7,7 +7,6 @@ import Register from "./pages/Auth/Register";
 import LandingPage from "./pages/LandingPage";
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
 import CreateExam from "./pages/Examiner/CreateExam";
-import EditExam from "./pages/Examiner/EditExam";
 import ExamineeDashboard from "./pages/Examinee/ExamineeDashboard";
 import PreviousExams from "./pages/Examinee/PreviousExams";
 import PreviewStartExam from "./pages/Examinee/PreviewStartExam";
@@ -18,6 +17,7 @@ import Navbar from "./components/Navbar";
 import { GlobalContext } from "./context/GlobalContext";
 import AllCreatedExams from "./pages/Examiner/AllCreatedExams";
 import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
+import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
 
 function App() {
   const { user, loading } = useContext(GlobalContext);
@@ -114,10 +114,10 @@ function App() {
           }
         />
         <Route
-          path="/examiner/editexam/:examId"
+          path="/examiner/my-created-exam/edit-created-exam/:examId"
           element={
             <ProtectedRoute>
-              {user?.role === "examiner" ? <EditExam /> : <Navigate to="/examinee/dashboard" />}
+              {user?.role === "examiner" ? <EditCreatedExam /> : <Navigate to="/examinee/dashboard" />}
             </ProtectedRoute>
           }
         />

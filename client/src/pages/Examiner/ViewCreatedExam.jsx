@@ -60,107 +60,265 @@ export default function ViewCreatedExam() {
     });
   };
 
-  const exportPDF = async (includeAnswers = false) => {
-    if (!exam) return;
+//making pdf from the exam
+const exportPDF = async (includeAnswers = false) => {
+  if (!exam) return;
 
-    const doc = new jsPDF();
-    let y = 20;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pageWidth - 2 * margin;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentWidth = pageWidth - 2 * margin;
+  const columnWidth = (contentWidth - 10) / 2; // 10px gap between columns
+  let y = 20;
 
-    doc.setFontSize(16);
-    doc.text(exam.exam_name, margin, y);
-    y += 10;
+  // Set font
+  doc.setFont("helvetica");
 
-    doc.setFontSize(12);
-    doc.text(`Subject: ${exam.subject} - ${exam.chapter}`, margin, y);
-    y += 8;
-    doc.text(`Class: ${exam.class_name || "Not specified"}`, margin, y);
-    y += 8;
-    doc.text(`Description: ${exam.description || "No description"}`, margin, y);
-    y += 8;
-    doc.text(`Total Marks: ${exam.total_marks}`, margin, y);
-    y += 8;
-    doc.text(`Passing Marks: ${exam.passing_marks || "Not specified"}`, margin, y);
-    y += 8;
-    doc.text(`Time: ${exam.total_time_minutes} min`, margin, y);
-    y += 8;
-    doc.text(`Attempts: ${exam.attempts_allowed}`, margin, y);
-    y += 8;
-    if (exam.negative_marks_value > 0) {
-      doc.text(`Negative Marking: ${exam.negative_marks_value}`, margin, y);
-      y += 8;
+  // Header Section - Centered
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text(exam.exam_name.toUpperCase(), pageWidth / 2, y, { align: 'center' });
+  y += 7;
+
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  doc.text(`${exam.subject} - ${exam.chapter}`, pageWidth / 2, y, { align: 'center' });
+  y += 6;
+
+  // Exam details
+  doc.setFontSize(9);
+  const details = [
+    `Class: ${exam.class_name || "N/A"}`,
+    `Total Marks: ${exam.total_marks}`,
+    `Time: ${exam.total_time_minutes} min`,
+    `Examiner: ${exam.examiner_name || "N/A"}`,
+    exam.negative_marks_value > 0 ? `Negative Marking: ${exam.negative_marks_value}` : null
+  ].filter(Boolean);
+
+  // Center details evenly
+  const detailWidth = contentWidth / details.length;
+  details.forEach((detail, index) => {
+    const x = margin + (index * detailWidth) + (detailWidth / 2);
+    doc.text(detail, x, y, { align: 'center' });
+  });
+  y += 10;
+
+  // Divider line
+  doc.setDrawColor(150, 150, 150);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 12;
+
+  // Instructions
+  if (exam.description) {
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'italic');
+    const instructions = doc.splitTextToSize(`Instructions: ${exam.description}`, contentWidth);
+    doc.text(instructions, margin, y);
+    y += instructions.length * 4 + 10;
+  }
+
+  // Start two-column layout for questions
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text("QUESTIONS", margin, y);
+  y += 15;
+
+  // Two-column layout variables
+  let currentColumn = 0; // 0 = left, 1 = right
+  let columnX = margin;
+  let questionCount = 0;
+
+  for (const [idx, q] of exam.questions.entries()) {
+    questionCount++;
+    
+    // Determine current column position
+    if (currentColumn === 1) {
+      columnX = margin + columnWidth + 10;
+    } else {
+      columnX = margin;
     }
-    doc.text(`Examiner: ${exam.examiner_name || "Not specified"}`, margin, y);
-    y += 10;
 
-    for (const [idx, q] of exam.questions.entries()) {
-      if (y > 220) { doc.addPage(); y = 20; }
-      y += 10;
-      doc.setFontSize(12);
-      doc.text(`${idx + 1}. ${q.question_text}`, margin, y);
-      y += 8;
-
-      if (q.question_image_url) {
-        try {
-          const imgProps = await getImageDimensions(q.question_image_url);
-          const imgWidth = Math.min(contentWidth, 150);
-          const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-          if (y + imgHeight > 270) { doc.addPage(); y = 20; }
-          doc.addImage(q.question_image_url, 'JPEG', margin, y, imgWidth, imgHeight);
-          y += imgHeight + 8;
-        } catch {
-          doc.text("[Image not available]", margin, y);
-          y += 8;
-        }
+    // Check if we need a new page
+    if (y > pageHeight - 50) {
+      if (currentColumn === 0) {
+        // Move to right column first
+        currentColumn = 1;
+        columnX = margin + columnWidth + 10;
+        y = 40; // Reset y for right column
+      } else {
+        // New page
+        doc.addPage();
+        y = 20;
+        currentColumn = 0;
+        columnX = margin;
       }
+    }
 
-      // Options A-D
-      const options = [
-        { text: q.options.A.text, image: q.options.A.image_url, letter: 'A' },
-        { text: q.options.B.text, image: q.options.B.image_url, letter: 'B' },
-        { text: q.options.C.text, image: q.options.C.image_url, letter: 'C' },
-        { text: q.options.D.text, image: q.options.D.image_url, letter: 'D' }
-      ];
+    // Question number (Q1, Q2, etc.)
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    const questionNumber = `Q${questionCount}.`;
+    doc.text(questionNumber, columnX, y);
+    
+    // Question text
+    const questionTextWidth = columnWidth - 15;
+    const splitQuestion = doc.splitTextToSize(q.question_text, questionTextWidth);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    doc.text(splitQuestion, columnX + 12, y);
+    y += splitQuestion.length * 4;
 
-      for (const option of options) {
-        if (y > 270) { doc.addPage(); y = 20; }
-        doc.text(`   ${option.letter}. ${option.text}`, margin + 5, y);
-        y += 8;
+    // Question image (standard size for two columns)
+    if (q.question_image_url) {
+      try {
+        const imgProps = await getImageDimensions(q.question_image_url);
+        const maxWidth = columnWidth - 15;
+        const maxHeight = 60;
+        const scale = Math.min(maxWidth / imgProps.width, maxHeight / imgProps.height);
+        const imgWidth = imgProps.width * scale;
+        const imgHeight = imgProps.height * scale;
         
-        if (option.image) {
-          try {
-            const imgProps = await getImageDimensions(option.image);
-            const imgWidth = Math.min(contentWidth - 10, 100);
-            const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-            if (y + imgHeight > 270) { doc.addPage(); y = 20; }
-            doc.addImage(option.image, 'JPEG', margin + 15, y, imgWidth, imgHeight);
-            y += imgHeight + 8;
-          } catch {
-            doc.text("[Image not available]", margin + 15, y);
-            y += 8;
+        if (y + imgHeight > pageHeight - 20) {
+          if (currentColumn === 0) {
+            currentColumn = 1;
+            columnX = margin + columnWidth + 10;
+            y = 40;
+          } else {
+            doc.addPage();
+            y = 20;
+            currentColumn = 0;
+            columnX = margin;
           }
         }
+        
+        const centerX = columnX + (columnWidth - imgWidth) / 2;
+        doc.addImage(q.question_image_url, 'JPEG', centerX, y, imgWidth, imgHeight);
+        y += imgHeight + 5;
+      } catch {
+        doc.setFontSize(8);
+        doc.text("[Image]", columnX, y);
+        y += 4;
       }
-
-      if (includeAnswers) {
-        if (y > 270) { doc.addPage(); y = 20; }
-        doc.setTextColor(0, 128, 0);
-        doc.text(`Answer: ${q.correct_answer}`, margin + 5, y);
-        doc.setTextColor(0, 0, 0);
-        y += 10;
-      }
-
-      y += 5;
     }
 
-    const fileName = includeAnswers
-      ? `${exam.exam_name}-WithAnswers.pdf`
-      : `${exam.exam_name}-QuestionsOnly.pdf`;
+    // Options
+    doc.setFontSize(9);
+    const options = [
+      { text: q.options.A.text, image: q.options.A.image_url, letter: 'A' },
+      { text: q.options.B.text, image: q.options.B.image_url, letter: 'B' },
+      { text: q.options.C.text, image: q.options.C.image_url, letter: 'C' },
+      { text: q.options.D.text, image: q.options.D.image_url, letter: 'D' }
+    ];
 
-    doc.save(fileName);
-  };
+    for (const option of options) {
+      if (y > pageHeight - 30) {
+        if (currentColumn === 0) {
+          currentColumn = 1;
+          columnX = margin + columnWidth + 10;
+          y = 40;
+        } else {
+          doc.addPage();
+          y = 20;
+          currentColumn = 0;
+          columnX = margin;
+        }
+      }
+
+      // Option letter
+      doc.setFont(undefined, 'bold');
+      doc.text(`${option.letter}.`, columnX, y);
+      
+      // Option text
+      const optionTextWidth = columnWidth - 20;
+      const splitOption = doc.splitTextToSize(option.text, optionTextWidth);
+      doc.setFont(undefined, 'normal');
+      doc.text(splitOption, columnX + 6, y);
+      y += splitOption.length * 3.5;
+
+      // Option image (small and consistent size)
+      if (option.image) {
+        try {
+          const imgProps = await getImageDimensions(option.image);
+          const maxWidth = 25;
+          const maxHeight = 20;
+          const scale = Math.min(maxWidth / imgProps.width, maxHeight / imgProps.height);
+          const imgWidth = imgProps.width * scale;
+          const imgHeight = imgProps.height * scale;
+          
+          if (y + imgHeight > pageHeight - 20) {
+            if (currentColumn === 0) {
+              currentColumn = 1;
+              columnX = margin + columnWidth + 10;
+              y = 40;
+            } else {
+              doc.addPage();
+              y = 20;
+              currentColumn = 0;
+              columnX = margin;
+            }
+          }
+          
+          doc.addImage(option.image, 'JPEG', columnX + 8, y, imgWidth, imgHeight);
+          y += imgHeight + 3;
+        } catch {
+          doc.setFontSize(7);
+          doc.text("[Img]", columnX + 8, y);
+          y += 3;
+        }
+      }
+    }
+
+    // Answer (if included)
+    if (includeAnswers) {
+      if (y > pageHeight - 15) {
+        if (currentColumn === 0) {
+          currentColumn = 1;
+          columnX = margin + columnWidth + 10;
+          y = 40;
+        } else {
+          doc.addPage();
+          y = 20;
+          currentColumn = 0;
+          columnX = margin;
+        }
+      }
+
+      doc.setFontSize(9);
+      doc.setTextColor(0, 100, 0);
+      doc.setFont(undefined, 'bold');
+      doc.text(`✓ Answer: ${q.correct_answer}`, columnX, y);
+      doc.setTextColor(0, 0, 0);
+      y += 6;
+    }
+
+    // Space between questions
+    y += 8;
+
+    // Move to next column if current column is getting full
+    if (currentColumn === 0 && y > pageHeight / 2 + 20) {
+      currentColumn = 1;
+      columnX = margin + columnWidth + 10;
+      y = 40;
+    }
+  }
+
+  // Footer with page numbers
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+  }
+
+  const fileName = includeAnswers
+    ? `${exam.exam_name.replace(/\s+/g, '_')}_With_Answers.pdf`
+    : `${exam.exam_name.replace(/\s+/g, '_')}_Question_Paper.pdf`;
+
+  doc.save(fileName);
+};
 
   if (loading) {
     return (
@@ -205,7 +363,7 @@ export default function ViewCreatedExam() {
 
           {/* Edit button at top-right */}
           <button
-            onClick={() => navigate(`/examiner/editexam/${exam.exam_id}`, { state: { exam } })}
+            onClick={() => navigate(`/examiner/my-created-exam/edit-created-exam/${examId}`)}
             className="absolute top-10 right-0 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-md flex items-center transition duration-300"
           >
             <Edit size={18} className="mr-2" />
@@ -260,8 +418,8 @@ export default function ViewCreatedExam() {
               {q.question_image_url && (
                 <div className="ml-11 mb-4">
                   <div className="flex items-center mb-2">
-                    <ImageIcon size={16} className="text-blue-500 mr-2" />
-                    <span className="text-sm text-gray-500">Question Image:</span>
+                    {/* <ImageIcon size={16} className="text-blue-500 mr-2" />
+                    <span className="text-sm text-gray-500">Question Image:</span> */}
                   </div>
                   <img 
                     src={q.question_image_url} 
@@ -286,13 +444,13 @@ export default function ViewCreatedExam() {
                         {q.options[letter].image_url && (
                           <div className="mt-2">
                             <div className="flex items-center mb-1">
-                              <ImageIcon size={14} className="text-blue-500 mr-1" />
-                              <span className="text-xs text-gray-500">Option Image:</span>
+                              {/* <ImageIcon size={14} className="text-blue-500 mr-1" />
+                              <span className="text-xs text-gray-500">Option Image:</span> */}
                             </div>
                             <img 
                               src={q.options[letter].image_url} 
                               alt={`Option ${letter}`} 
-                              className="max-w-full h-auto rounded border border-gray-200 max-h-40 object-contain"
+                              className="max-w-full h-auto  max-h-40 object-contain"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                               }}
@@ -310,9 +468,9 @@ export default function ViewCreatedExam() {
                   <span className="bg-green-100 text-green-700 rounded-lg p-1 px-2 mr-3">✓</span>
                   Correct Answer: {q.correct_answer}
                 </p>
-                <p className="text-green-600 text-sm mt-1">
+                {/* <p className="text-green-600 text-sm mt-1">
                   Marks: {q.marks}
-                </p>
+                </p> */}
               </div>
             </div>
           ))}

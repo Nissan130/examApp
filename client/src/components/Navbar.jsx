@@ -82,7 +82,7 @@ export default function Navbar() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center justify-center w-10 h-10 bg-orange-500 rounded-full text-white hover:bg-orange-600 transition"
+                className="flex items-center justify-center w-10 h-10 bg-orange-500 rounded-full text-white hover:bg-orange-600 transition cursor-pointer"
               >
                 <User size={20} />
               </button>
@@ -94,7 +94,7 @@ export default function Navbar() {
                   <hr />
                   <button
                     onClick={() => handleRoleSwitch("examinee")}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${
+                    className={`w-full text-left cursor-pointer px-4 py-2 text-sm hover:bg-gray-50 transition ${
                       user.role === "examinee"
                         ? "font-bold text-orange-500"
                         : "text-gray-700"
@@ -104,7 +104,7 @@ export default function Navbar() {
                   </button>
                   <button
                     onClick={() => handleRoleSwitch("examiner")}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${
+                    className={`w-full text-left cursor-pointer px-4 py-2 text-sm hover:bg-gray-50 transition ${
                       user.role === "examiner"
                         ? "font-bold text-orange-500"
                         : "text-gray-700"
@@ -115,7 +115,7 @@ export default function Navbar() {
                   <hr />
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition"
+                    className="w-full text-left cursor-pointer px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition"
                   >
                     Logout
                   </button>

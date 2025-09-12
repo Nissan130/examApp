@@ -3,23 +3,26 @@ import { useNavigate, Link } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GlobalContext } from "../../context/GlobalContext";
+import { useCustomAlert } from "../../context/CustomAlertContext";
 
 export default function Login() {
+  const custom_arert = useCustomAlert()
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const { login , user} = useContext(GlobalContext);
+  const { login, user } = useContext(GlobalContext);
 
   useEffect(() => {
-  if (user) {
-    // Redirect based on role
-    if (user.role === "examiner") navigate("/examiner/dashboard");
-    else navigate("/examinee/dashboard");
-  }
-}, [user]);
+    if (user) {
+      // Redirect based on role
+      if (user.role === "examiner") navigate("/examiner/dashboard");
+      else navigate("/examinee/dashboard");
+    }
+  }, [user]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -28,6 +31,7 @@ export default function Login() {
     const success = await login(email, password, rememberMe);
 
     if (success) {
+      custom_arert.success("Login Successfull")
       navigate("/examinee/dashboard");
     } else {
       setError("Login failed");
@@ -43,6 +47,7 @@ export default function Login() {
         {error && <div className="mb-4 text-red-500 text-sm text-center">{error}</div>}
 
         <form onSubmit={handleLogin} className="w-full space-y-4">
+          <label className="block mb-1 font-medium text-gray-700 text-sm">Email</label>
           <input
             type="email"
             placeholder="Enter your email"
@@ -51,6 +56,7 @@ export default function Login() {
             className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
             required
           />
+          <label className="block mb-1 font-medium text-gray-700 text-sm">Password</label>
           <input
             type="password"
             placeholder="Enter your password"
@@ -66,19 +72,19 @@ export default function Login() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-orange-600 focus:ring-orange-500"
+                className="w-4 h-4 text-orange-600 focus:ring-orange-500 cursor-pointer"
               />
               <span>Remember me</span>
             </label>
-            <Link to="/forgot-password" className="text-orange-600 hover:underline">Forgot password?</Link>
+            <Link to="/forgot-password" className="text-orange-600 hover:underline cursor-pointer">Forgot password?</Link>
           </div>
 
-          <button type="submit" className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors">
+          <button type="submit" className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors cursor-pointer">
             Login
           </button>
 
           <p className="text-center text-gray-600 text-sm mt-2">
-            Don&apos;t have an account? <Link to="/register" className="text-orange-600 font-medium hover:underline">Register</Link>
+            Don&apos;t have an account? <Link to="/register" className="text-orange-600 font-medium hover:underline cursor-pointer">Register</Link>
           </p>
         </form>
       </div>

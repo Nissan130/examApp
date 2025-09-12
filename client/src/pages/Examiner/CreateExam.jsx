@@ -1,12 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useContext } from "react";
-import axios from "axios"; // Added for API calls
+import axios from "axios";
 import { GlobalContext } from "../../context/GlobalContext";
-
+import { Loader } from "lucide-react";
+import { useCustomAlert } from "../../context/CustomAlertContext";
 
 export default function CreateExam() {
+  const custom_alert = useCustomAlert();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
+  const [creating, setCreating] = useState(false); // Loading state for create exam
 
   // Exam details state
   const [examName, setExamName] = useState("");
@@ -23,26 +26,22 @@ export default function CreateExam() {
   const [endTime, setEndTime] = useState("");
   const [attemptsAllowed, setAttemptsAllowed] = useState("1");
   const [negativeMarking, setNegativeMarking] = useState(false);
-  const [negativeMarks, setNegativeMarks] = useState("");
+  const [negativeMarks, setNegativeMarks] = useState("0.25"); // Default to 0.25
   const [examinerName, setExaminerName] = useState("");
 
-  //get user
+  // Get user
   const { user, token } = useContext(GlobalContext);
-  const user_id = user.id
-  // console.log("user id: ",user)
-  // In your component, add this debug log
-  console.log("Token:", token);
-  console.log("User:", user);
+  const user_id = user.id;
 
   // Questions state
   const [questions, setQuestions] = useState([
     {
       question: "",
-      questionImage: null, // ✅ Store File object for upload
-      questionImagePreview: null, // ✅ Store preview URL
+      questionImage: null,
+      questionImagePreview: null,
       options: ["", "", "", ""],
-      optionImages: [null, null, null, null], // ✅ Store File object
-      optionImagesPreview: [null, null, null, null], // ✅ Store preview URL
+      optionImages: [null, null, null, null],
+      optionImagesPreview: [null, null, null, null],
       correctOption: null,
     },
   ]);
@@ -71,7 +70,15 @@ export default function CreateExam() {
     setQuestions(updatedQuestions);
   };
 
-  // ✅ Updated to store File object and preview
+  // Handle negative marking toggle
+  const handleNegativeMarkingToggle = (checked) => {
+    setNegativeMarking(checked);
+    if (checked && !negativeMarks) {
+      setNegativeMarks("0.25"); // Set default value when enabling
+    }
+  };
+
+  // Handle image change
   const handleImageChange = (index, field, file) => {
     if (!file) return;
     const updatedQuestions = [...questions];
@@ -79,17 +86,16 @@ export default function CreateExam() {
     const imageUrl = URL.createObjectURL(file); // For preview
 
     if (field === "questionImage") {
-      updatedQuestions[index].questionImage = file; // Store File for upload
-      updatedQuestions[index].questionImagePreview = imageUrl; // Store preview
+      updatedQuestions[index].questionImage = file;
+      updatedQuestions[index].questionImagePreview = imageUrl;
     } else if (field.startsWith("optionImage-")) {
       const optIndex = parseInt(field.split("-")[1]);
-      updatedQuestions[index].optionImages[optIndex] = file; // Store File
-      updatedQuestions[index].optionImagesPreview[optIndex] = imageUrl; // Preview
+      updatedQuestions[index].optionImages[optIndex] = file;
+      updatedQuestions[index].optionImagesPreview[optIndex] = imageUrl;
     }
 
     setQuestions(updatedQuestions);
   };
-
 
   // Handle paste image
   const handlePasteImage = (qIndex, field, e) => {
@@ -122,15 +128,14 @@ export default function CreateExam() {
     const updatedQuestions = [...questions];
     if (field === "questionImage") {
       updatedQuestions[index].questionImage = null;
-      updatedQuestions[index].questionImagePreview = null; // ✅ remove preview
+      updatedQuestions[index].questionImagePreview = null;
     } else if (field.startsWith("optionImage-")) {
       const optIndex = parseInt(field.split("-")[1]);
       updatedQuestions[index].optionImages[optIndex] = null;
-      updatedQuestions[index].optionImagesPreview[optIndex] = null; // ✅ remove preview
+      updatedQuestions[index].optionImagesPreview[optIndex] = null;
     }
     setQuestions(updatedQuestions);
   };
-
 
   // Trigger file input programmatically
   const triggerFileInput = (qIndex, field) => {
@@ -157,18 +162,28 @@ export default function CreateExam() {
 
   const deleteQuestion = (qIndex) => setQuestions(questions.filter((_, i) => i !== qIndex));
 
+  // Check if question is filled (either text or image)
+  const isQuestionFilled = (q) => {
+    return q.question.trim() !== "" || q.questionImage !== null;
+  };
+
+  // Check if option is filled (either text or image)
+  const isOptionFilled = (opt, optImage) => {
+    return opt.trim() !== "" || optImage !== null;
+  };
+
   // Check if all questions and options are filled
   const isQuestionsValid = () => {
     return questions.every(q => {
-      const hasQuestionText = q.question.trim() !== "";
-      const hasAllOptions = q.options.every(opt => opt.trim() !== "");
+      const hasQuestion = isQuestionFilled(q);
+      const hasAllOptions = q.options.every((opt, index) => isOptionFilled(opt, q.optionImages[index]));
       const hasCorrectOption = q.correctOption !== null;
 
-      return hasQuestionText && hasAllOptions && hasCorrectOption;
+      return hasQuestion && hasAllOptions && hasCorrectOption;
     });
   };
 
-  // ✅ Updated handleCreateExam to connect with backend + Cloudinary
+  // Handle create exam
   const handleCreateExam = async () => {
     if (!isQuestionsValid()) {
       alert("Please fill all questions, options, and mark correct answers before creating the exam.");
@@ -176,6 +191,7 @@ export default function CreateExam() {
     }
 
     try {
+      setCreating(true);
       const formData = new FormData();
 
       // Prepare JSON data for exam + questions + options
@@ -196,7 +212,7 @@ export default function CreateExam() {
         questions: questions.map((q, qIdx) => ({
           question_text: q.question,
           question_order: qIdx + 1,
-          marks: 1, // or calculate based on your logic
+          marks: 1,
           optA_text: q.options[0],
           optB_text: q.options[1],
           optC_text: q.options[2],
@@ -213,7 +229,7 @@ export default function CreateExam() {
           formData.append(`question_${qIdx + 1}_image`, q.questionImage);
         }
 
-        // Append option images - FIXED: use correct naming convention
+        // Append option images
         q.optionImages.forEach((optImg, optIdx) => {
           if (optImg) {
             const optionLetter = ["A", "B", "C", "D"][optIdx];
@@ -222,37 +238,32 @@ export default function CreateExam() {
         });
       });
 
-      console.log("Sending request with token:", token);
-
-      // Send the request - DON'T set Content-Type header manually for FormData
       const response = await axios.post(
         "http://127.0.0.1:5000/api/exam/create-exam",
         formData,
         {
           headers: {
             "Authorization": `Bearer ${token}`,
-            // Let browser set Content-Type with boundary for multipart/form-data
           }
         }
       );
 
       if (response.data.status === "success") {
-        alert("Exam created successfully!");
+        // alert("Exam created successfully!");
+        custom_alert.success("Exam created successfully!")
         navigate("/examiner/showexams");
       } else {
         alert("Failed to create exam: " + response.data.message);
       }
     } catch (err) {
       console.error("Error creating exam:", err);
-      console.error("Error response:", err.response);
-
       if (err.response && err.response.status === 401) {
         alert("Authentication failed. Please log in again.");
-        // Optionally redirect to login page
-        // navigate("/login");
       } else {
         alert("Failed to create exam. See console for details.");
       }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -263,7 +274,7 @@ export default function CreateExam() {
   };
 
   // Validation for required fields
-  const isDetailsValid = examName && subject && chapter && totalMarks && totalTime;
+  const isDetailsValid = examName && subject && chapter && classes && totalMarks && totalTime;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -290,8 +301,8 @@ export default function CreateExam() {
             Exam Details
           </button>
           <button
-            className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "questions" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-            onClick={() => setActiveTab("questions")}
+            className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "questions" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"} ${!isDetailsValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => isDetailsValid && setActiveTab("questions")}
             disabled={!isDetailsValid}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -309,7 +320,6 @@ export default function CreateExam() {
           {activeTab === "details" ? (
             <div>
               <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-
                 <span className="bg-blue-100 p-2 rounded-lg mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -448,7 +458,7 @@ export default function CreateExam() {
                     <input
                       type="checkbox"
                       checked={negativeMarking}
-                      onChange={(e) => setNegativeMarking(e.target.checked)}
+                      onChange={(e) => handleNegativeMarkingToggle(e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
@@ -459,6 +469,8 @@ export default function CreateExam() {
                   <div className="sm:ml-auto">
                     <input
                       type="number"
+                      step="0.01"
+                      min="0"
                       placeholder="e.g., 0.25"
                       value={negativeMarks}
                       onChange={(e) => setNegativeMarks(e.target.value)}
@@ -473,7 +485,7 @@ export default function CreateExam() {
                 <button
                   onClick={() => setActiveTab("questions")}
                   disabled={!isDetailsValid}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm"
                 >
                   Next: Questions & Options
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -502,7 +514,7 @@ export default function CreateExam() {
                   Instructions
                 </h3>
                 <ul className="text-yellow-700 text-sm list-disc pl-5 space-y-1">
-                  <li>Fill all question texts and options</li>
+                  <li>Fill all question texts and options (either text or image)</li>
                   <li>Click the radio button next to the correct option to mark it as the right answer</li>
                   <li>Add images to questions or options if needed (optional)</li>
                 </ul>
@@ -514,9 +526,6 @@ export default function CreateExam() {
                   <div key={qIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                        {/* <span className="bg-green-100 text-green-800 p-1 rounded mr-2 text-xs">
-                          {qIndex + 1}
-                        </span> */}
                         Question {qIndex + 1}
                       </h3>
                       {questions.length > 1 && (
@@ -534,9 +543,8 @@ export default function CreateExam() {
 
                     {/* Question Input */}
                     <div className="mb-4">
-                      {/* <label className="block text-sm font-medium text-gray-700 mb-2">Question Text *</label> */}
                       <div
-                        className={`p-3 bg-white border ${q.question.trim() === "" ? "border-red-300" : "border-gray-300"} rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-blue-500' : ''}`}
+                        className={`p-3 bg-white border ${!isQuestionFilled(q) ? "border-red-300" : "border-gray-300"} rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-blue-500' : ''}`}
                         onPaste={(e) => handlePasteImage(qIndex, "questionImage", e)}
                       >
                         <textarea
@@ -548,14 +556,13 @@ export default function CreateExam() {
                           required
                         />
                       </div>
-                      {q.question.trim() === "" && (
-                        <p className="text-red-500 text-xs mt-1">Question text is required</p>
+                      {!isQuestionFilled(q) && (
+                        <p className="text-red-500 text-xs mt-1">Question text or image is required</p>
                       )}
                     </div>
 
                     {/* Question Image */}
                     <div className="mb-6">
-                      {/* <label className="block text-sm font-medium text-gray-700 mb-2">Question Image</label> */}
                       {q.questionImage ? (
                         <div className="relative inline-block">
                           <img src={q.questionImagePreview} alt="question" className="w-32 h-32 object-contain border rounded-lg shadow-sm" />
@@ -579,12 +586,10 @@ export default function CreateExam() {
                                 strokeWidth={2}
                                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                               />
-
                             </svg>
                             Upload Question Image
                             <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, "questionImage", e.target.files[0])} className="hidden" />
                           </label>
-                          {/* <span className="text-xs text-gray-500">or paste image with Ctrl+V</span> */}
                         </div>
                       )}
                     </div>
@@ -601,7 +606,6 @@ export default function CreateExam() {
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-
                         Options * (Select the correct one)
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -629,11 +633,11 @@ export default function CreateExam() {
                                 value={opt}
                                 onChange={(e) => handleQuestionChange(qIndex, `option-${optIndex}`, e.target.value)}
                                 placeholder='Type text or paste image'
-                                className={`w-full p-2 bg-gray-50 border ${opt.trim() === "" ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
+                                className={`w-full p-2 bg-gray-50 border ${!isOptionFilled(opt, q.optionImages[optIndex]) ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
                                 required
                               />
-                              {opt.trim() === "" && (
-                                <p className="text-red-500 text-xs mt-1">Option text is required</p>
+                              {!isOptionFilled(opt, q.optionImages[optIndex]) && (
+                                <p className="text-red-500 text-xs mt-1">Option text or image is required</p>
                               )}
                             </div>
 
@@ -675,7 +679,6 @@ export default function CreateExam() {
                 <button
                   onClick={addQuestion}
                   className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center mt-4 text-sm cursor-pointer"
-
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -691,7 +694,6 @@ export default function CreateExam() {
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-
                   Add New Question
                 </button>
               </div>
@@ -719,13 +721,22 @@ export default function CreateExam() {
                   </button>
                   <button
                     onClick={handleCreateExam}
-                    disabled={!isQuestionsValid()}
-                    className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                    disabled={!isQuestionsValid() || creating}
+                    className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center justify-center text-sm min-w-[120px]"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Create Exam
+                    {creating ? (
+                      <>
+                        <Loader className="animate-spin h-4 w-4 mr-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Create Exam
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
