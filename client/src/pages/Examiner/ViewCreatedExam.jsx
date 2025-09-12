@@ -1,14 +1,42 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import { ArrowLeft, Download, ImageIcon, Edit } from "lucide-react";
+import { ArrowLeft, Download, Edit } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
+import { pdf, Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
+
+// Register Bengali font
+// Font.register({
+//   family: "NotoSansBengali",
+//   src: "/fonts/NotoSansBengali-Regular.ttf",
+//   fonts: [
+//     { src: "/fonts/NotoSansBengali-Regular.ttf", fontWeight: "normal" },
+//     { src: "/fonts/NotoSansBengali-Regular.ttf", fontWeight: "normal" },
+//   ]
+// });
+
+//kalpurush bangla font
+// Font.register({
+//   family: "Kalpurush",
+//   src: "/fonts/kalpurush.ttf",
+//   fonts: [
+//     { src: "/fonts/kalpurush.ttf", fontWeight: "normal" },
+//     { src: "/fonts/kalpurush.ttf", fontWeight: "bold" },
+//   ]
+// });
+
+//kalpurush bangla font
+Font.register({
+  family: "SolaimanLipi",
+  // src: "/fonts/SolaimanLipi.ttf",
+  fonts: [
+    { src: "/fonts/SolaimanLipi.ttf", fontWeight: "normal" },
+    { src: "/fonts/SolaimanLipi_Bold.ttf", fontWeight: "bold" },
+  ]
+});
 
 export default function ViewCreatedExam() {
   const { examId } = useParams();
-  console.log(examId);
-  
   const { token } = useContext(GlobalContext);
   const navigate = useNavigate();
   const [exam, setExam] = useState(null);
@@ -16,309 +44,148 @@ export default function ViewCreatedExam() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (examId) {
-      fetchExamDetails();
-    } else {
-      setError("Exam ID is missing");
-      setLoading(false);
-    }
+    if (examId) fetchExamDetails();
+    else { setError("Exam ID is missing"); setLoading(false); }
   }, [examId]);
 
   const fetchExamDetails = async () => {
     try {
       setLoading(true);
-      setError("");
-      
       const response = await axios.get(
         `http://127.0.0.1:5000/api/exam/my-created-exams/view-created-exam/${examId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (response.data.status === "success") {
-        setExam(response.data.exam);
-      } else {
-        setError(response.data.message || "Failed to fetch exam details");
-      }
+      if (response.data.status === "success") setExam(response.data.exam);
+      else setError(response.data.message || "Failed to fetch exam details");
     } catch (err) {
-      console.error("Error fetching exam details:", err);
       setError(err.response?.data?.message || "Failed to fetch exam details");
     } finally {
       setLoading(false);
     }
   };
 
-  const getImageDimensions = (url) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.width, height: img.height });
-      img.onerror = () => resolve({ width: 100, height: 60 });
-      img.src = url;
-    });
-  };
 
-//making pdf from the exam
-const exportPDF = async (includeAnswers = false) => {
-  if (!exam) return;
+const styles = StyleSheet.create({
+  page: { padding: 20, fontFamily: "SolaimanLipi", fontSize: 12 },
+  header: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 8 },
+  subHeader: { fontSize: 12, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
+  details: { fontSize: 10, marginBottom: 10, flexDirection: "row", flexWrap: "wrap" },
+  detailItem: { marginRight: 15, marginBottom: 3 },
+  questionRow: { flexDirection: "row", justifyContent: "space-between" },
+  questionColumn: { width: "48%" },
+  questionText: { fontWeight: "bold", marginBottom: 4 },
+  option: { flexDirection: "row", marginBottom: 2 },
+  optionLetter: { fontWeight: "bold", marginRight: 4 },
+  answer: { color: "green", marginTop: 4, fontWeight: "bold" },
+  image: { marginVertical: 5, maxWidth: "100%", height: "auto", borderRadius: 5 },
+  hr: { borderBottomWidth: 1, borderBottomColor: "#000", marginVertical: 8 },
+});
 
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
-  const contentWidth = pageWidth - 2 * margin;
-  const columnWidth = (contentWidth - 10) / 2; // 10px gap between columns
-  let y = 20;
-
-  // Set font
-  doc.setFont("helvetica");
-
-  // Header Section - Centered
-  doc.setFontSize(16);
-  doc.setFont(undefined, 'bold');
-  doc.text(exam.exam_name.toUpperCase(), pageWidth / 2, y, { align: 'center' });
-  y += 7;
-
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'normal');
-  doc.text(`${exam.subject} - ${exam.chapter}`, pageWidth / 2, y, { align: 'center' });
-  y += 6;
-
-  // Exam details
-  doc.setFontSize(9);
-  const details = [
-    `Class: ${exam.class_name || "N/A"}`,
-    `Total Marks: ${exam.total_marks}`,
-    `Time: ${exam.total_time_minutes} min`,
-    `Examiner: ${exam.examiner_name || "N/A"}`,
-    exam.negative_marks_value > 0 ? `Negative Marking: ${exam.negative_marks_value}` : null
-  ].filter(Boolean);
-
-  // Center details evenly
-  const detailWidth = contentWidth / details.length;
-  details.forEach((detail, index) => {
-    const x = margin + (index * detailWidth) + (detailWidth / 2);
-    doc.text(detail, x, y, { align: 'center' });
-  });
-  y += 10;
-
-  // Divider line
-  doc.setDrawColor(150, 150, 150);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 12;
-
-  // Instructions
-  if (exam.description) {
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'italic');
-    const instructions = doc.splitTextToSize(`Instructions: ${exam.description}`, contentWidth);
-    doc.text(instructions, margin, y);
-    y += instructions.length * 4 + 10;
-  }
-
-  // Start two-column layout for questions
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text("QUESTIONS", margin, y);
-  y += 15;
-
-  // Two-column layout variables
-  let currentColumn = 0; // 0 = left, 1 = right
-  let columnX = margin;
-  let questionCount = 0;
-
-  for (const [idx, q] of exam.questions.entries()) {
-    questionCount++;
-    
-    // Determine current column position
-    if (currentColumn === 1) {
-      columnX = margin + columnWidth + 10;
-    } else {
-      columnX = margin;
-    }
-
-    // Check if we need a new page
-    if (y > pageHeight - 50) {
-      if (currentColumn === 0) {
-        // Move to right column first
-        currentColumn = 1;
-        columnX = margin + columnWidth + 10;
-        y = 40; // Reset y for right column
-      } else {
-        // New page
-        doc.addPage();
-        y = 20;
-        currentColumn = 0;
-        columnX = margin;
-      }
-    }
-
-    // Question number (Q1, Q2, etc.)
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    const questionNumber = `Q${questionCount}.`;
-    doc.text(questionNumber, columnX, y);
-    
-    // Question text
-    const questionTextWidth = columnWidth - 15;
-    const splitQuestion = doc.splitTextToSize(q.question_text, questionTextWidth);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    doc.text(splitQuestion, columnX + 12, y);
-    y += splitQuestion.length * 4;
-
-    // Question image (standard size for two columns)
-    if (q.question_image_url) {
-      try {
-        const imgProps = await getImageDimensions(q.question_image_url);
-        const maxWidth = columnWidth - 15;
-        const maxHeight = 60;
-        const scale = Math.min(maxWidth / imgProps.width, maxHeight / imgProps.height);
-        const imgWidth = imgProps.width * scale;
-        const imgHeight = imgProps.height * scale;
-        
-        if (y + imgHeight > pageHeight - 20) {
-          if (currentColumn === 0) {
-            currentColumn = 1;
-            columnX = margin + columnWidth + 10;
-            y = 40;
-          } else {
-            doc.addPage();
-            y = 20;
-            currentColumn = 0;
-            columnX = margin;
-          }
-        }
-        
-        const centerX = columnX + (columnWidth - imgWidth) / 2;
-        doc.addImage(q.question_image_url, 'JPEG', centerX, y, imgWidth, imgHeight);
-        y += imgHeight + 5;
-      } catch {
-        doc.setFontSize(8);
-        doc.text("[Image]", columnX, y);
-        y += 4;
-      }
-    }
-
-    // Options
-    doc.setFontSize(9);
-    const options = [
-      { text: q.options.A.text, image: q.options.A.image_url, letter: 'A' },
-      { text: q.options.B.text, image: q.options.B.image_url, letter: 'B' },
-      { text: q.options.C.text, image: q.options.C.image_url, letter: 'C' },
-      { text: q.options.D.text, image: q.options.D.image_url, letter: 'D' }
-    ];
-
-    for (const option of options) {
-      if (y > pageHeight - 30) {
-        if (currentColumn === 0) {
-          currentColumn = 1;
-          columnX = margin + columnWidth + 10;
-          y = 40;
-        } else {
-          doc.addPage();
-          y = 20;
-          currentColumn = 0;
-          columnX = margin;
-        }
-      }
-
-      // Option letter
-      doc.setFont(undefined, 'bold');
-      doc.text(`${option.letter}.`, columnX, y);
-      
-      // Option text
-      const optionTextWidth = columnWidth - 20;
-      const splitOption = doc.splitTextToSize(option.text, optionTextWidth);
-      doc.setFont(undefined, 'normal');
-      doc.text(splitOption, columnX + 6, y);
-      y += splitOption.length * 3.5;
-
-      // Option image (small and consistent size)
-      if (option.image) {
-        try {
-          const imgProps = await getImageDimensions(option.image);
-          const maxWidth = 25;
-          const maxHeight = 20;
-          const scale = Math.min(maxWidth / imgProps.width, maxHeight / imgProps.height);
-          const imgWidth = imgProps.width * scale;
-          const imgHeight = imgProps.height * scale;
-          
-          if (y + imgHeight > pageHeight - 20) {
-            if (currentColumn === 0) {
-              currentColumn = 1;
-              columnX = margin + columnWidth + 10;
-              y = 40;
-            } else {
-              doc.addPage();
-              y = 20;
-              currentColumn = 0;
-              columnX = margin;
-            }
-          }
-          
-          doc.addImage(option.image, 'JPEG', columnX + 8, y, imgWidth, imgHeight);
-          y += imgHeight + 3;
-        } catch {
-          doc.setFontSize(7);
-          doc.text("[Img]", columnX + 8, y);
-          y += 3;
-        }
-      }
-    }
-
-    // Answer (if included)
-    if (includeAnswers) {
-      if (y > pageHeight - 15) {
-        if (currentColumn === 0) {
-          currentColumn = 1;
-          columnX = margin + columnWidth + 10;
-          y = 40;
-        } else {
-          doc.addPage();
-          y = 20;
-          currentColumn = 0;
-          columnX = margin;
-        }
-      }
-
-      doc.setFontSize(9);
-      doc.setTextColor(0, 100, 0);
-      doc.setFont(undefined, 'bold');
-      doc.text(`✓ Answer: ${q.correct_answer}`, columnX, y);
-      doc.setTextColor(0, 0, 0);
-      y += 6;
-    }
-
-    // Space between questions
-    y += 8;
-
-    // Move to next column if current column is getting full
-    if (currentColumn === 0 && y > pageHeight / 2 + 20) {
-      currentColumn = 1;
-      columnX = margin + columnWidth + 10;
-      y = 40;
-    }
-  }
-
-  // Footer with page numbers
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
-  }
-
-  const fileName = includeAnswers
-    ? `${exam.exam_name.replace(/\s+/g, '_')}_With_Answers.pdf`
-    : `${exam.exam_name.replace(/\s+/g, '_')}_Question_Paper.pdf`;
-
-  doc.save(fileName);
+// Split questions for two-column vertical layout
+const getColumns = (questions) => {
+  const mid = Math.ceil(questions.length / 2);
+  const col1 = questions.slice(0, mid);
+  const col2 = questions.slice(mid);
+  return [col1, col2];
 };
+
+// Split into pages (optional: define max rows per page)
+const getPages = (questions, rowsPerPage = 6) => {
+  const pages = [];
+  for (let i = 0; i < questions.length; i += rowsPerPage * 2) {
+    pages.push(questions.slice(i, i + rowsPerPage * 2));
+  }
+  return pages;
+};
+
+
+
+  const exportPDF = async (includeAnswers = false) => {
+    if (!exam) return;
+    const pages = getPages(exam.questions, 3); // 3 rows per column per page
+
+
+    const ExamDocument = (
+
+<Document>
+      {pages.map((pageQuestions, pageIndex) => {
+        const [col1, col2] = getColumns(pageQuestions);
+
+        return (
+          <Page key={pageIndex} style={styles.page}>
+            {pageIndex === 0 && (
+              <>
+                <Text style={styles.header}>{exam.exam_name}</Text>
+                <Text style={styles.subHeader}>{exam.subject} - {exam.chapter}</Text>
+                <View style={styles.details}>
+                  <Text style={styles.detailItem}>Class: {exam.class_name || "N/A"}</Text>
+                  <Text style={styles.detailItem}>Marks: {exam.total_marks}</Text>
+                  <Text style={styles.detailItem}>Time: {exam.total_time_minutes} min</Text>
+                  {exam.negative_marks_value > 0 && (
+                    <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
+                  )}
+                  <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
+                  <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
+                </View>
+                {exam.description && <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>}
+                <View style={styles.hr} />
+              </>
+            )}
+
+            <View style={styles.questionRow}>
+              <View style={styles.questionColumn}>
+                {col1.map((q, idx) => (
+                  <View key={q.question_id} style={{ marginBottom: 15 }}>
+                    <Text style={styles.questionText}>{idx + 1 + pageIndex * col1.length * 2}. {q.question_text}</Text>
+                    {q.question_image_url && <Image src={q.question_image_url} style={styles.image} resizeMode="contain" />}
+                    {['A', 'B', 'C', 'D'].map((letter) => (
+                      <View key={letter} style={styles.option}>
+                        <Text style={styles.optionLetter}>{letter}.</Text>
+                        <Text>{q.options[letter].text}</Text>
+                        {q.options[letter].image_url && <Image src={q.options[letter].image_url} style={styles.image} resizeMode="contain" />}
+                      </View>
+                    ))}
+                    {includeAnswers && <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>}
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.questionColumn}>
+                {col2.map((q, idx) => (
+                  <View key={q.question_id} style={{ marginBottom: 15 }}>
+                    <Text style={styles.questionText}>{idx + 1 + col1.length + pageIndex * col1.length * 2}. {q.question_text}</Text>
+                    {q.question_image_url && <Image src={q.question_image_url} style={styles.image} resizeMode="contain" />}
+                    {['A', 'B', 'C', 'D'].map((letter) => (
+                      <View key={letter} style={styles.option}>
+                        <Text style={styles.optionLetter}>{letter}.</Text>
+                        <Text>{q.options[letter].text}</Text>
+                        {q.options[letter].image_url && <Image src={q.options[letter].image_url} style={{...styles.image, height:40}} resizeMode="contain" />}
+                      </View>
+                    ))}
+                    {includeAnswers && <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>}
+                  </View>
+                ))}
+              </View>
+            </View>
+          </Page>
+        );
+      })}
+    </Document>
+
+    );
+
+    const asPdf = pdf();
+    asPdf.updateContainer(ExamDocument);
+    const blob = await asPdf.toBlob();
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = includeAnswers
+      ? `${exam.exam_name.replace(/\s+/g, "_")}_With_Answers.pdf`
+      : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
+    link.click();
+  }
+
 
   if (loading) {
     return (
@@ -336,8 +203,8 @@ const exportPDF = async (includeAnswers = false) => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-md w-full">
           <p className="text-gray-600 text-lg mb-6">{error || "Exam not found."}</p>
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition duration-300 flex items-center justify-center mx-auto"
           >
             <ArrowLeft size={18} className="mr-2" />
@@ -353,8 +220,8 @@ const exportPDF = async (includeAnswers = false) => {
       <div className="max-w-4xl mx-auto relative">
         {/* Header */}
         <div className="mb-8 pt-10">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="flex items-center text-blue-600 hover:text-blue-800 mb-4 transition duration-200"
           >
             <ArrowLeft size={20} className="mr-2" />
@@ -421,9 +288,9 @@ const exportPDF = async (includeAnswers = false) => {
                     {/* <ImageIcon size={16} className="text-blue-500 mr-2" />
                     <span className="text-sm text-gray-500">Question Image:</span> */}
                   </div>
-                  <img 
-                    src={q.question_image_url} 
-                    alt="Question" 
+                  <img
+                    src={q.question_image_url}
+                    alt="Question"
                     className="max-w-full h-auto rounded-lg border border-gray-200 max-h-60 object-contain"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -447,9 +314,9 @@ const exportPDF = async (includeAnswers = false) => {
                               {/* <ImageIcon size={14} className="text-blue-500 mr-1" />
                               <span className="text-xs text-gray-500">Option Image:</span> */}
                             </div>
-                            <img 
-                              src={q.options[letter].image_url} 
-                              alt={`Option ${letter}`} 
+                            <img
+                              src={q.options[letter].image_url}
+                              alt={`Option ${letter}`}
                               className="max-w-full h-auto  max-h-40 object-contain"
                               onError={(e) => {
                                 e.target.style.display = 'none';
@@ -482,19 +349,19 @@ const exportPDF = async (includeAnswers = false) => {
             <Download size={20} className="mr-2 text-blue-600" />
             Export Exam
           </h3>
-          
+
           <div className="flex flex-wrap gap-4">
-            <button 
-              onClick={() => exportPDF(false)} 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-md transition duration-300 flex items-center"
+            <button
+              onClick={() => exportPDF(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-md transition duration-300 flex items-center cursor-pointer"
             >
               <Download size={18} className="mr-2" />
               Questions Only PDF
             </button>
-            
-            <button 
-              onClick={() => exportPDF(true)} 
-              className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white px-5 py-3 rounded-xl shadow-md transition duration-300 flex items-center"
+
+            <button
+              onClick={() => exportPDF(true)}
+              className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white px-5 py-3 rounded-xl shadow-md transition duration-300 flex items-center cursor-pointer"
             >
               <Download size={18} className="mr-2" />
               With Answers PDF

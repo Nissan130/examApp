@@ -18,19 +18,32 @@ import { GlobalContext } from "./context/GlobalContext";
 import AllCreatedExams from "./pages/Examiner/AllCreatedExams";
 import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
 import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
+import PDFGenerator from "./components/PDFGenerator";
 
 function App() {
-  const { user, loading } = useContext(GlobalContext);
+  const { user, currentRole, loading } = useContext(GlobalContext);
   const [exam, setExam] = useState(null);
 
-
   // ✅ Wait until context finishes loading user/token
-  if (loading) return null; // or show a spinner/loader
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
-
-  // Protected Route wrapper
-  const ProtectedRoute = ({ children }) => {
-    return user ? children : <Navigate to="/login" />;
+  // Protected Route wrapper with role check
+  const ProtectedRoute = ({ children, requiredRole = null }) => {
+    if (!user) return <Navigate to="/login" />;
+    
+    // If a specific role is required but user doesn't have it
+    if (requiredRole && currentRole !== requiredRole) {
+      // Redirect to the dashboard of their current role
+      return <Navigate to={`/${currentRole}/dashboard`} />;
+    }
+    
+    return children;
   };
 
   return (
@@ -40,25 +53,25 @@ function App() {
 
       <Routes>
         {/* Landing Page */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={!user ? <LandingPage /> : <Navigate to={`/${currentRole}/dashboard`} />} />
 
         {/* Auth */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to={`/${currentRole}/dashboard`} />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to={`/${currentRole}/dashboard`} />} />
 
-        {/* Examinee */}
+        {/* Examinee Routes */}
         <Route
           path="/examinee/dashboard"
           element={
-            <ProtectedRoute>
-              {user?.role === "examinee" ? <ExamineeDashboard /> : <Navigate to="/examiner/dashboard" />}
+            <ProtectedRoute requiredRole="examinee">
+              <ExamineeDashboard />
             </ProtectedRoute>
           }
         />
         <Route
           path="/prevexam"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="examinee">
               <PreviousExams exam={exam} setExam={setExam} />
             </ProtectedRoute>
           }
@@ -66,7 +79,7 @@ function App() {
         <Route
           path="/previewstartexam"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="examinee">
               <PreviewStartExam exam={exam} setExam={setExam} />
             </ProtectedRoute>
           }
@@ -74,50 +87,58 @@ function App() {
         <Route
           path="/runningexam"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="examinee">
               <RunningExam exam={exam} setExam={setExam} />
             </ProtectedRoute>
           }
         />
 
-        {/* Examiner */}
+        {/* Examiner Routes */}
         <Route
           path="/examiner/dashboard"
           element={
-            <ProtectedRoute>
-              {user?.role === "examiner" ? <ExaminerDashboard /> : <Navigate to="/examinee/dashboard" />}
+            <ProtectedRoute requiredRole="examiner">
+              <ExaminerDashboard />
             </ProtectedRoute>
           }
         />
         <Route
           path="/examiner/create-exam"
           element={
-            <ProtectedRoute>
-              {user?.role === "examiner" ? <CreateExam /> : <Navigate to="/examinee/dashboard" />}
+            <ProtectedRoute requiredRole="examiner">
+              <CreateExam />
             </ProtectedRoute>
           }
         />
         <Route
           path="/examiner/all-created-exam"
           element={
-            <ProtectedRoute>
-              {user?.role === "examiner" ? <AllCreatedExams /> : <Navigate to="/examinee/dashboard" />}
+            <ProtectedRoute requiredRole="examiner">
+              <AllCreatedExams />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examiner/pdf-generator"
+          element={
+            <ProtectedRoute requiredRole="examiner">
+              <PDFGenerator />
             </ProtectedRoute>
           }
         />
         <Route
           path="/examiner/my-created-exam/view-created-exam/:examId"
           element={
-            <ProtectedRoute>
-              {user?.role === "examiner" ? <ViewCreatedExam /> : <Navigate to="/examinee/dashboard" />}
+            <ProtectedRoute requiredRole="examiner">
+              <ViewCreatedExam />
             </ProtectedRoute>
           }
         />
         <Route
           path="/examiner/my-created-exam/edit-created-exam/:examId"
           element={
-            <ProtectedRoute>
-              {user?.role === "examiner" ? <EditCreatedExam /> : <Navigate to="/examinee/dashboard" />}
+            <ProtectedRoute requiredRole="examiner">
+              <EditCreatedExam />
             </ProtectedRoute>
           }
         />
@@ -127,11 +148,7 @@ function App() {
           path="*"
           element={
             user ? (
-              user.role === "examiner" ? (
-                <Navigate to="/examiner/dashboard" />
-              ) : (
-                <Navigate to="/examinee/dashboard" />
-              )
+              <Navigate to={`/${currentRole}/dashboard`} />
             ) : (
               <Navigate to="/" />
             )

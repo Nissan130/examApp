@@ -44,97 +44,107 @@ export default function EditCreatedExam() {
         }
     }, [examId]);
 
-   const fetchExamDetails = async () => {
-    try {
-        setLoading(true);
-        setError("");
+    const fetchExamDetails = async () => {
+        try {
+            setLoading(true);
+            setError("");
 
-        const response = await axios.get(
-            `http://127.0.0.1:5000/api/exam/my-created-exams/view-created-exam/${examId}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
-
-        if (response.data.status === "success") {
-            const examData = response.data.exam;
-            console.log(examData);
-            
-            // Parse datetime fields
-            const startDatetime = examData.start_datetime || "";
-            const endDatetime = examData.end_datetime || "";
-            
-            // Process questions to match the expected format
-            const processedQuestions = examData.questions.map(question => {
-                // Convert separate option fields to an array
-                const options = [
-                    question.options.A.text || "",
-                    question.options.B.text || "",
-                    question.options.C.text || "",
-                    question.options.D.text || ""
-                ];
-                
-                // Convert separate option image fields to an array
-                const optionImages = [
-                    question.options.A.image_url || null,
-                    question.options.B.image_url || null,
-                    question.options.C.image_url || null,
-                    question.options.D.image_url || null
-                ];
-                
-                // Initialize optionImagesPreview array with null values
-                const optionImagesPreview = [null, null, null, null];
-                
-                // Determine correct option index
-                let correctOption = null;
-                if (question.correct_answer) {
-                    const optionIndex = ["A", "B", "C", "D"].indexOf(question.correct_answer);
-                    if (optionIndex !== -1) {
-                        correctOption = optionIndex;
-                    }
+            const response = await axios.get(
+                `http://127.0.0.1:5000/api/exam/my-created-exams/view-created-exam/${examId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
-                
-                return {
-                    ...question,
-                    question: question.question_text || "",
-                    questionImage: question.question_image_url || null,
-                    questionImagePreview: question.question_image_url || null,
-                    options: options,
-                    optionImages: optionImages,
-                    optionImagesPreview: optionImagesPreview,
-                    correctOption: correctOption
-                };
-            });
-            
-            setExam({
-                ...examData,
-                start_datetime: startDatetime,
-                end_datetime: endDatetime,
-                questions: processedQuestions
-            });
-        } else {
-            setError(response.data.message || "Failed to fetch exam details");
+            );
+
+            if (response.data.status === "success") {
+                const examData = response.data.exam;
+                console.log(examData);
+
+                // Parse datetime fields
+                const startDatetime = examData.start_datetime || "";
+                const endDatetime = examData.end_datetime || "";
+
+                // Process questions to match the expected format
+                const processedQuestions = examData.questions.map(question => {
+                    // Convert separate option fields to an array
+                    const optionsText = [
+                        question.options.A.text || "",
+                        question.options.B.text || "",
+                        question.options.C.text || "",
+                        question.options.D.text || ""
+                    ];
+
+                    // Convert separate option image fields to an array
+                    const optionImagesUrl = [
+                        question.options.A.image_url || null,
+                        question.options.B.image_url || null,
+                        question.options.C.image_url || null,
+                        question.options.D.image_url || null
+                    ];
+                    const optionImagesId = [
+                        question.options.A.image_id || null,
+                        question.options.B.image_id || null,
+                        question.options.C.image_id || null,
+                        question.options.D.image_id || null
+                    ];
+
+                    // Initialize optionImagesPreview array with null values
+                    const optionImagesPreview = [null, null, null, null];
+
+                    // Determine correct option index
+                    let correctOption = null;
+                    if (question.correct_answer) {
+                        const optionIndex = ["A", "B", "C", "D"].indexOf(question.correct_answer);
+                        if (optionIndex !== -1) {
+                            correctOption = optionIndex;
+                        }
+                    }
+
+                    return {
+                        ...question,
+                        questionText: question.question_text || "",
+                        questionImageUrl: question.question_image_url || null,
+                        questionImageId: question.question_image_id || null,
+                        questionImagePreview: question.question_image_url || null,
+                        optionsText: optionsText,
+                        optionImagesUrl: optionImagesUrl,
+                        optionImagesId: optionImagesId,
+                        optionImagesPreview: optionImagesPreview,
+                        correctOption: correctOption
+                    };
+                });
+
+                setExam({
+                    ...examData,
+                    start_datetime: startDatetime,
+                    end_datetime: endDatetime,
+                    questions: processedQuestions
+                });
+            } else {
+                setError(response.data.message || "Failed to fetch exam details");
+            }
+        } catch (err) {
+            console.error("Error fetching exam details:", err);
+            setError(err.response?.data?.message || "Failed to fetch exam details");
+        } finally {
+            setLoading(false);
         }
-    } catch (err) {
-        console.error("Error fetching exam details:", err);
-        setError(err.response?.data?.message || "Failed to fetch exam details");
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const handleExamChange = (field, value) => {
         setExam((prev) => ({ ...prev, [field]: value }));
     };
 
+    // Fix handleQuestionChange function
     const handleQuestionChange = (qIndex, field, value) => {
         const updated = [...exam.questions];
-        if (field === "question") updated[qIndex][field] = value;
-        else if (field.startsWith("option-")) {
+        if (field === "question") {
+            updated[qIndex].questionText = value;
+        } else if (field.startsWith("option-")) {
             const optIndex = parseInt(field.split("-")[1]);
-            updated[qIndex].options[optIndex] = value;
+            updated[qIndex].optionsText[optIndex] = value;
         }
         setExam({ ...exam, questions: updated });
     };
@@ -148,42 +158,43 @@ export default function EditCreatedExam() {
 
     // Handle image upload
     // Handle image change - store File objects instead of URLs
-   // Handle image change - store File objects instead of URLs
+    // Handle image change - store File objects instead of URLs
 
-   // Handle image change - store File objects instead of URLs
-const handleImageChange = (qIndex, field, file) => {
-    if (!file) return;
-    
-    // Create a deep copy of the questions array
-    const updated = exam.questions.map(q => ({
-        ...q,
-        options: [...q.options],
-        optionImages: [...q.optionImages],
-        optionImagesPreview: [...(q.optionImagesPreview || [null, null, null, null])]
-    }));
+    // Handle image change - store File objects instead of URLs
+    const handleImageChange = (qIndex, field, file) => {
+        if (!file) return;
 
-    const imageUrl = URL.createObjectURL(file); // For preview only
+        // Create a deep copy of the questions array
+        const updated = exam.questions.map(q => ({
+            ...q,
+            optionsText: [...q.optionsText],
+            optionImagesUrl: [...q.optionImagesUrl],
+            optionImagesId: [...q.optionImagesId],
+            optionImagesPreview: [...(q.optionImagesPreview || [null, null, null, null])]
+        }));
 
-    if (field === "questionImage") {
-        updated[qIndex].questionImage = file; // Store the File object
-        updated[qIndex].questionImagePreview = imageUrl; // For preview
-    } else if (field.startsWith("optionImage-")) {
-        const optIndex = parseInt(field.split("-")[1]);
-        
-        // Ensure optionImages and optionImagesPreview arrays exist
-        if (!updated[qIndex].optionImages) {
-            updated[qIndex].optionImages = [null, null, null, null];
+        const imageUrl = URL.createObjectURL(file); // For preview only
+
+        if (field === "questionImage") {
+            updated[qIndex].questionImageUrl = file; // Store the File object
+            updated[qIndex].questionImagePreview = imageUrl; // For preview
+        } else if (field.startsWith("optionImage-")) {
+            const optIndex = parseInt(field.split("-")[1]);
+
+            // Ensure optionImages and optionImagesPreview arrays exist
+            if (!updated[qIndex].optionImagesUrl) {
+                updated[qIndex].optionImagesUrl = [null, null, null, null];
+            }
+            if (!updated[qIndex].optionImagesPreview) {
+                updated[qIndex].optionImagesPreview = [null, null, null, null];
+            }
+
+            updated[qIndex].optionImagesUrl[optIndex] = file; // Store the File object
+            updated[qIndex].optionImagesPreview[optIndex] = imageUrl; // For preview
         }
-        if (!updated[qIndex].optionImagesPreview) {
-            updated[qIndex].optionImagesPreview = [null, null, null, null];
-        }
-        
-        updated[qIndex].optionImages[optIndex] = file; // Store the File object
-        updated[qIndex].optionImagesPreview[optIndex] = imageUrl; // For preview
-    }
 
-    setExam({ ...exam, questions: updated });
-};
+        setExam({ ...exam, questions: updated });
+    };
     // Handle paste image
     const handlePasteImage = (qIndex, field, e) => {
         e.preventDefault();
@@ -215,35 +226,36 @@ const handleImageChange = (qIndex, field, file) => {
     };
 
     // Remove image
-   // Remove image
-const removeImage = (qIndex, field) => {
-    // Create a deep copy of the questions array
-    const updated = exam.questions.map(q => ({
-        ...q,
-        options: [...q.options],
-        optionImages: [...q.optionImages],
-        optionImagesPreview: [...(q.optionImagesPreview || [null, null, null, null])]
-    }));
+    // Remove image
+    const removeImage = (qIndex, field) => {
+        // Create a deep copy of the questions array
+        const updated = exam.questions.map(q => ({
+            ...q,
+            optionsText: [...q.optionsText],
+            optionImagesUrl: [...q.optionImagesUrl],
+            optionImagesId: [...q.optionImagesId],
+            optionImagesPreview: [...(q.optionImagesPreview || [null, null, null, null])]
+        }));
 
-    if (field === "questionImage") {
-        updated[qIndex].questionImage = null;
-        updated[qIndex].questionImagePreview = null;
-    } else if (field.startsWith("optionImage-")) {
-        const optIndex = parseInt(field.split("-")[1]);
-        
-        // Ensure arrays exist
-        if (!updated[qIndex].optionImages) {
-            updated[qIndex].optionImages = [null, null, null, null];
+        if (field === "questionImage") {
+            updated[qIndex].questionImageUrl = null;
+            updated[qIndex].questionImagePreview = null;
+        } else if (field.startsWith("optionImage-")) {
+            const optIndex = parseInt(field.split("-")[1]);
+
+            // Ensure arrays exist
+            if (!updated[qIndex].optionImagesUrl) {
+                updated[qIndex].optionImagesUrl = [null, null, null, null];
+            }
+            if (!updated[qIndex].optionImagesPreview) {
+                updated[qIndex].optionImagesPreview = [null, null, null, null];
+            }
+
+            updated[qIndex].optionImagesUrl[optIndex] = null;
+            updated[qIndex].optionImagesPreview[optIndex] = null;
         }
-        if (!updated[qIndex].optionImagesPreview) {
-            updated[qIndex].optionImagesPreview = [null, null, null, null];
-        }
-        
-        updated[qIndex].optionImages[optIndex] = null;
-        updated[qIndex].optionImagesPreview[optIndex] = null;
-    }
-    setExam({ ...exam, questions: updated });
-};
+        setExam({ ...exam, questions: updated });
+    };
 
     // Trigger file input programmatically
     const triggerFileInput = (qIndex, field) => {
@@ -253,49 +265,53 @@ const removeImage = (qIndex, field) => {
         }
     };
 
-   const addQuestion = () => {
-    const newQuestion = {
-        question: "",
-        questionImage: null,
-        questionImagePreview: null,
-        options: ["", "", "", ""],
-        optionImages: [null, null, null, null],
-        optionImagesPreview: [null, null, null, null],
-        correctOption: null
+    const addQuestion = () => {
+        const newQuestion = {
+            questionText: "",
+            questionImageUrl: null,
+            questionImageId: null,
+            questionImagePreview: null,
+            optionsText: ["", "", "", ""],
+            optionImagesUrl: [null, null, null, null],
+            optionImagesId: [null, null, null, null],
+            optionImagesPreview: [null, null, null, null],
+            correctOption: null
+        };
+        setExam({ ...exam, questions: [...exam.questions, newQuestion] });
     };
-    setExam({ ...exam, questions: [...exam.questions, newQuestion] });
-};
     const deleteQuestion = (qIndex) => {
         const updated = exam.questions.filter((_, i) => i !== qIndex);
         setExam({ ...exam, questions: updated });
     };
 
-    // Check if question is filled (either text or image)
+    // Fix isQuestionFilled function
     const isQuestionFilled = (q) => {
-        return q.question.trim() !== "" || q.questionImage !== null;
+        return (q.questionText && q.questionText.trim() !== "") || q.questionImageUrl !== null;
     };
 
     // Check if all questions and options are filled
 
     // Check if option is filled (either text or image)
-const isOptionFilled = (opt, optImage) => {
-    return opt && opt.trim() !== "" || optImage !== null && optImage !== undefined;
-};
+    // Fix isOptionFilled function
+    const isOptionFilled = (opt, optImage) => {
+        return (opt && opt.trim() !== "") || (optImage !== null && optImage !== undefined);
+    };
 
-// Check if all questions and options are filled
-const isQuestionsValid = () => {
-    return exam.questions.every(q => {
-        const hasQuestion = isQuestionFilled(q);
-        const hasAllOptions = q.options.every((opt, index) => 
-            isOptionFilled(opt, q.optionImages && q.optionImages[index])
-        );
-        const hasCorrectOption = q.correctOption !== null;
 
-        return hasQuestion && hasAllOptions && hasCorrectOption;
-    });
-};
+    // Check if all questions and options are filled
+    const isQuestionsValid = () => {
+        return exam.questions.every(q => {
+            const hasQuestion = isQuestionFilled(q);
+            const hasAllOptions = q.optionsText.every((opt, index) =>
+                isOptionFilled(opt, q.optionImagesUrl && q.optionImagesUrl[index])
+            );
+            const hasCorrectOption = q.correctOption !== null;
 
-    
+            return hasQuestion && hasAllOptions && hasCorrectOption;
+        });
+    };
+
+
     // Handle negative marking toggle
     const handleNegativeMarkingToggle = (checked) => {
         const negativeMarksValue = checked ? 0.25 : 0;
@@ -303,6 +319,7 @@ const isQuestionsValid = () => {
     };
 
     //update the data and images in the database
+    // Update the data and images in the database
     const updateExam = async () => {
         if (!isQuestionsValid()) {
             alert("Please fill all questions, options, and mark correct answers before updating the exam.");
@@ -312,7 +329,6 @@ const isQuestionsValid = () => {
         try {
             setUpdating(true);
 
-            // Create FormData instead of JSON
             const formData = new FormData();
 
             // Prepare JSON data for exam + questions + options
@@ -330,29 +346,62 @@ const isQuestionsValid = () => {
                 attempts_allowed: exam.attempts_allowed,
                 negative_marks_value: exam.negative_marks_value,
                 examiner_name: exam.examiner_name,
-                questions: exam.questions.map((q, index) => ({
-                    question_text: q.question,
-                    question_order: index + 1,
-                    marks: 1,
-                    optA_text: q.options[0] || "",
-                    optB_text: q.options[1] || "",
-                    optC_text: q.options[2] || "",
-                    optD_text: q.options[3] || "",
-                    correct_answer: ["A", "B", "C", "D"][q.correctOption]
-                }))
+                questions: exam.questions.map((q, index) => {
+                    const questionImageUrl = q.questionImageUrl || null
+                    const questionImageId = q.questionImageId || null
+                    const opts = q.optionImagesUrl || [null, null, null, null];
+                    const optIds = q.optionImagesId || [null, null, null, null];
+
+                    return {
+                        question_text: q.questionText,
+                        question_order: index + 1,
+                        marks: 1,
+                        optA_text: q.optionsText[0] || "",
+                        optB_text: q.optionsText[1] || "",
+                        optC_text: q.optionsText[2] || "",
+                        optD_text: q.optionsText[3] || "",
+                        correct_answer: ["A", "B", "C", "D"][q.correctOption] || null,
+
+                        // // Correct the question image ID logic
+                        // question_image_id: q.questionImageUrl instanceof File ? null : q.questionImageId || null,
+                        // question_image_url: q.questionImageUrl instanceof File ? null : q.questionImageUrl || null,
+
+
+                        // //option images
+                        // optA_image_id: opts[0] instanceof File ? null : optIds[0] || null,
+                        // optB_image_id: opts[1] instanceof File ? null : optIds[1] || null,
+                        // optC_image_id: opts[2] instanceof File ? null : optIds[2] || null,
+                        // optD_image_id: opts[3] instanceof File ? null : optIds[3] || null,
+
+                        // Existing image URLs safely
+                        question_image_url: typeof questionImageUrl === "string" ? q.questionImageUrl : null,
+                        question_image_id: typeof questionImageId === "string" ? q.questionImageId : null,
+
+                        // Options images
+                        optA_image_url: typeof opts[0] === "string" ? opts[0] : null,
+                        optA_image_id: typeof opts[0] === "string" ? optIds[0] : null,
+                        optB_image_url: typeof opts[1] === "string" ? opts[1] : null,
+                        optB_image_id: typeof opts[1] === "string" ? optIds[1] : null,
+                        optC_image_url: typeof opts[2] === "string" ? opts[2] : null,
+                        optC_image_id: typeof opts[2] === "string" ? optIds[2] : null,
+                        optD_image_url: typeof opts[3] === "string" ? opts[3] : null,
+                        optD_image_id: typeof opts[3] === "string" ? optIds[3] : null,
+
+                    };
+                })
+
             };
 
             formData.append("exam_data", JSON.stringify(examData));
 
-            // Append question images
+            // Append new images only (File objects)
             exam.questions.forEach((q, qIdx) => {
-                if (q.questionImage && q.questionImage instanceof File) {
-                    formData.append(`question_${qIdx + 1}_image`, q.questionImage);
+                if (q.questionImageUrl instanceof File) {
+                    formData.append(`question_${qIdx + 1}_image`, q.questionImageUrl);
                 }
 
-                // Append option images
-                q.optionImages.forEach((optImg, optIdx) => {
-                    if (optImg && optImg instanceof File) {
+                q.optionImagesUrl.forEach((optImg, optIdx) => {
+                    if (optImg instanceof File) {
                         const optionLetter = ["A", "B", "C", "D"][optIdx];
                         formData.append(`question_${qIdx + 1}_opt${optionLetter}_image`, optImg);
                     }
@@ -364,7 +413,7 @@ const isQuestionsValid = () => {
                 formData,
                 {
                     headers: {
-                        "Authorization": `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -383,6 +432,7 @@ const isQuestionsValid = () => {
             setUpdating(false);
         }
     };
+
 
 
     const handleCancelExam = () => {
@@ -672,7 +722,7 @@ const isQuestionsValid = () => {
 
                             {/* Questions Section */}
                             <div className="space-y-6">
-                                {exam.questions.map((q, qIndex) => (
+                                {exam.questions && exam.questions.map((q, qIndex) => (
                                     <div key={qIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                         <div className="flex justify-between items-center mb-4">
                                             <h3 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -698,7 +748,7 @@ const isQuestionsValid = () => {
                                                 onPaste={(e) => handlePasteImage(qIndex, "questionImage", e)}
                                             >
                                                 <textarea
-                                                    value={q.question}
+                                                    value={q.questionText}
                                                     onChange={(e) => handleQuestionChange(qIndex, "question", e.target.value)}
                                                     rows={3}
                                                     placeholder="Type your question here or paste an image with Ctrl+V..."
@@ -713,10 +763,10 @@ const isQuestionsValid = () => {
 
                                         {/* Question Image */}
                                         <div className="mb-6">
-                                            {q.questionImage ? (
+                                            {q.questionImageUrl ? (
                                                 <div className="relative inline-block">
                                                     <img
-                                                        src={q.questionImage instanceof File ? q.questionImagePreview : q.questionImage}
+                                                        src={q.questionImageUrl instanceof File ? q.questionImagePreview : q.questionImageUrl}
                                                         alt="question"
                                                         className="w-32 h-32 object-contain border rounded-lg shadow-sm"
                                                     />
@@ -771,7 +821,7 @@ const isQuestionsValid = () => {
                                                 Options * (Select the correct one)
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {q.options.map((opt, optIndex) => (
+                                                {q.optionsText.map((opt, optIndex) => (
                                                     <div key={optIndex} className="bg-white p-4 rounded-lg border border-gray-300">
                                                         <div className="flex items-center justify-between mb-2">
                                                             <label className="block text-sm font-medium text-gray-700">Option {optIndex + 1}</label>
@@ -795,50 +845,50 @@ const isQuestionsValid = () => {
                                                                 value={opt}
                                                                 onChange={(e) => handleQuestionChange(qIndex, `option-${optIndex}`, e.target.value)}
                                                                 placeholder='Type text or paste image'
-                                                                className={`w-full p-2 bg-gray-50 border ${!isOptionFilled(opt, q.optionImages[optIndex]) ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
+                                                                className={`w-full p-2 bg-gray-50 border ${!isOptionFilled(opt, q.optionImagesUrl[optIndex]) ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
                                                                 required
                                                             />
-                                                            {!isOptionFilled(opt, q.optionImages[optIndex]) && (
+                                                            {!isOptionFilled(opt, q.optionImagesUrl[optIndex]) && (
                                                                 <p className="text-red-500 text-xs mt-1">Option text or image is required</p>
                                                             )}
                                                         </div>
 
                                                         <div className="mt-2">
-                                                          
-{q.optionImages && q.optionImages[optIndex] ? (
-    <div className="relative inline-block">
-        <img 
-            src={q.optionImages[optIndex] instanceof File ? 
-                 (q.optionImagesPreview && q.optionImagesPreview[optIndex]) : 
-                 q.optionImages[optIndex]} 
-            alt={`option-${optIndex}`} 
-            className="w-20 h-20 object-contain border rounded-lg shadow-sm" 
-        />
-        <button
-            onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
-            title="Remove image"
-        >
-            ✕
-        </button>
-    </div>
-) : (
-    <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 flex items-center transition duration-200"
-        onClick={() => triggerFileInput(qIndex, `optionImage-${optIndex}`)}
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        Add image
-        <input 
-            type="file" 
-            accept="image/*" 
-            ref={el => fileInputRefs.current[`${qIndex}-optionImage-${optIndex}`] = el}
-            onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e.target.files[0])} 
-            className="hidden" 
-        />
-    </label>
-)}
+
+                                                            {q.optionImagesUrl && q.optionImagesUrl[optIndex] ? (
+                                                                <div className="relative inline-block">
+                                                                    <img
+                                                                        src={q.optionImagesUrl[optIndex] instanceof File ?
+                                                                            (q.optionImagesPreview && q.optionImagesPreview[optIndex]) :
+                                                                            q.optionImagesUrl[optIndex]}
+                                                                        alt={`option-${optIndex}`}
+                                                                        className="w-20 h-20 object-contain border rounded-lg shadow-sm"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
+                                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
+                                                                        title="Remove image"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 flex items-center transition duration-200"
+                                                                    onClick={() => triggerFileInput(qIndex, `optionImage-${optIndex}`)}
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                                    </svg>
+                                                                    Add image
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        ref={el => fileInputRefs.current[`${qIndex}-optionImage-${optIndex}`] = el}
+                                                                        onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e.target.files[0])}
+                                                                        className="hidden"
+                                                                    />
+                                                                </label>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}

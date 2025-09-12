@@ -12,6 +12,7 @@ export const useCustomAlert = () => {
 };
 
 export const CustomAlertProvider = ({ children }) => {
+  //custom alert 
   const [alerts, setAlerts] = useState([]);
 
   const showAlert = (type, message, duration = 3000) => {

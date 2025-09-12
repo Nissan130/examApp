@@ -91,21 +91,26 @@ def get_exam_details(user, exam_id):
                 'question_id': str(question.question_id),
                 'question_text': question.question_text,
                 'question_image_url': question.question_image_url,
+                'question_image_id': question.question_image_id,
                 'marks': question.marks,
                 'question_order': question.question_order,
                 'options': {
-                    'A': {'text': question.optA_text, 'image_url': question.optA_image_url},
-                    'B': {'text': question.optB_text, 'image_url': question.optB_image_url},
-                    'C': {'text': question.optC_text, 'image_url': question.optC_image_url},
-                    'D': {'text': question.optD_text, 'image_url': question.optD_image_url}
+                    'A': {'text': question.optA_text, 'image_url': question.optA_image_url, 'image_id': question.optA_image_id},
+                    'B': {'text': question.optB_text, 'image_url': question.optB_image_url, 'image_id': question.optB_image_id},
+                    'C': {'text': question.optC_text, 'image_url': question.optC_image_url, 'image_id': question.optC_image_id},
+                    'D': {'text': question.optD_text, 'image_url': question.optD_image_url, 'image_id': question.optD_image_id}
                 },
                 'correct_answer': question.correct_answer
             })
 
         return jsonify({'status': 'success', 'exam': exam_data})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': 'Failed to fetch exam details', 'details': str(e)}), 500
 
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to fetch exam details',
+            'details': str(e)
+        }), 500
 
 
 # ======== update exam and questions===========
@@ -113,6 +118,9 @@ def get_exam_details(user, exam_id):
 from datetime import datetime  # Add this import
 
 
+# -----------------------------
+# Update an existing exam
+# -----------------------------
 # -----------------------------
 # Update an existing exam
 # -----------------------------
@@ -125,15 +133,14 @@ def update_exam(user, exam_id):
         if not exam:
             return jsonify({'status': 'error', 'message': 'Exam not found'}), 404
 
-        # Check if request contains form data
+        # Load data from form or JSON
         if 'exam_data' in request.form:
             data = json.loads(request.form.get("exam_data"))
         else:
-            # Fallback to JSON data for testing
             data = request.get_json()
             if not data:
                 return jsonify({'status': 'error', 'message': 'No data provided'}), 400
-        
+
         # Update exam details
         exam.exam_name = data.get('exam_name', exam.exam_name)
         exam.subject = data.get('subject', exam.subject)
@@ -147,95 +154,88 @@ def update_exam(user, exam_id):
         exam.negative_marks_value = data.get('negative_marks_value', exam.negative_marks_value)
         exam.examiner_name = data.get('examiner_name', exam.examiner_name)
         exam.updated_at = datetime.utcnow()
-        
+
         # Handle datetime fields
         start_datetime = data.get('start_datetime')
         end_datetime = data.get('end_datetime')
-        
-        if start_datetime and start_datetime.strip():
-            try:
-                exam.start_datetime = datetime.fromisoformat(start_datetime.replace('Z', '+00:00'))
-            except (ValueError, AttributeError):
-                exam.start_datetime = None
-        else:
-            exam.start_datetime = None
-            
-        if end_datetime and end_datetime.strip():
-            try:
-                exam.end_datetime = datetime.fromisoformat(end_datetime.replace('Z', '+00:00'))
-            except (ValueError, AttributeError):
-                exam.end_datetime = None
-        else:
-            exam.end_datetime = None
-        
+        exam.start_datetime = datetime.fromisoformat(start_datetime.replace('Z', '+00:00')) if start_datetime else None
+        exam.end_datetime = datetime.fromisoformat(end_datetime.replace('Z', '+00:00')) if end_datetime else None
+
         # Update questions
         if 'questions' in data:
-            # First, delete existing questions
+            # Delete existing questions
             Question.query.filter_by(exam_id=exam.exam_id).delete()
-            
-            # Add new questions
-            for i, question_data in enumerate(data['questions']):
-                # Handle question image upload if new file provided
-                q_image_url = question_data.get('question_image_url')
-                q_image_id = None
-                
+
+            for i, q_data in enumerate(data['questions']):
+                # Question image
+                q_image_url = q_data.get('question_image_url')
+                q_image_id = q_data.get('question_image_id')
+
                 q_file = request.files.get(f"question_{i + 1}_image")
                 if q_file:
                     upload_result = upload_image(q_file, folder="exam-app/questions")
                     q_image_url = upload_result["url"]
                     q_image_id = upload_result["public_id"]
-                
+                else:
+                    # Retain existing URL and ID if no new file
+                    if q_image_url:
+                        q_image_url = q_data.get('question_image_url')
+                    if q_image_id:
+                        q_image_id = q_data.get('question_image_id')
+
                 question = Question(
                     question_id=uuid.uuid4(),
                     exam_id=exam.exam_id,
-                    question_text=question_data.get('question_text', ''),
+                    question_text=q_data.get('question_text', ''),
                     question_image_url=q_image_url,
                     question_image_id=q_image_id,
-                    question_order=question_data.get('question_order', i + 1),
-                    marks=question_data.get('marks', 1.0),
-                    optA_text=question_data.get('optA_text', ''),
-                    optB_text=question_data.get('optB_text', ''),
-                    optC_text=question_data.get('optC_text', ''),
-                    optD_text=question_data.get('optD_text', ''),
-                    correct_answer=question_data.get('correct_answer', ''),
+                    question_order=q_data.get('question_order', i + 1),
+                    marks=q_data.get('marks', 1.0),
+                    optA_text=q_data.get('optA_text', ''),
+                    optB_text=q_data.get('optB_text', ''),
+                    optC_text=q_data.get('optC_text', ''),
+                    optD_text=q_data.get('optD_text', ''),
+                    correct_answer=q_data.get('correct_answer', ''),
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
-                
-                # Handle option image uploads
-                for opt_idx, opt_key in enumerate(["A", "B", "C", "D"]):
+
+                # Option images
+                for opt_key in ["A", "B", "C", "D"]:
                     o_file = request.files.get(f"question_{i + 1}_opt{opt_key}_image")
                     if o_file:
                         upload_result = upload_image(o_file, folder="exam-app/options")
                         setattr(question, f"opt{opt_key}_image_url", upload_result["url"])
                         setattr(question, f"opt{opt_key}_image_id", upload_result["public_id"])
                     else:
-                        # Keep existing image URL if provided in data
-                        opt_image_url = question_data.get(f'opt{opt_key}_image_url')
-                        if opt_image_url:
-                            setattr(question, f"opt{opt_key}_image_url", opt_image_url)
-                
+                        # Retain existing URL and ID
+                        opt_url = q_data.get(f"opt{opt_key}_image_url")
+                        opt_id = q_data.get(f"opt{opt_key}_image_id")
+                        if opt_url:
+                            setattr(question, f"opt{opt_key}_image_url", opt_url)
+                        if opt_id:
+                            setattr(question, f"opt{opt_key}_image_id", opt_id)
+
                 db.session.add(question)
-        
-        # Commit changes to database
+
         db.session.commit()
-        
+
         return jsonify({
             'status': 'success',
             'message': 'Exam updated successfully',
             'exam_id': str(exam.exam_id)
         })
-        
+
     except Exception as e:
         db.session.rollback()
         import traceback
-        traceback.print_exc()  # This will print the full traceback to your console
+        traceback.print_exc()
         return jsonify({
             'status': 'error',
             'message': 'Failed to update exam',
             'details': str(e)
         }), 500
-    
+
 
 # -----------------------------
 # Delete an exam

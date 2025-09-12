@@ -1,57 +1,38 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { GlobalContext } from "../../context/GlobalContext";
 
-export default function Register({ onRegister }) {
+export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  
+  // Get register function from context
+  const { register } = useContext(GlobalContext);
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError("");
+    setIsSubmitting(true);
 
-    try {
-      const response = await fetch("http://127.0.0.1:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Set role on frontend
-        const userWithRole = { ...data.user, role: "examinee" };
-
-        // Call parent callback
-        onRegister(userWithRole);
-
-        // Save token (session by default)
-        sessionStorage.setItem("token", data.token);
-
-        // Show success toast
-        toast.success("✅ Successfully registered!", {
-          position: "top-right",
-          autoClose: 2000,
+    const success = await register(name, email, password);
+    
+    if (success) {
+      // Navigate to login page after successful registration
+      setTimeout(() => {
+        navigate("/login", { 
+          state: { 
+            prefillEmail: email,
+            message: "Registration successful! Please log in."
+          } 
         });
-
-        // Navigate to dashboard after short delay
-        setTimeout(() => {
-          navigate("/examinee/dashboard");
-        }, 2000);
-      } else {
-        setError(data.error || "Failed to register user");
-        toast.error(data.error || "Failed to register user");
-      }
-    } catch (err) {
-      console.error("Error connecting to backend:", err);
-      setError("Cannot connect to server. Try again later.");
-      toast.error("Cannot connect to server. Try again later.");
+      }, 1500);
     }
+    
+    setIsSubmitting(false);
   };
 
   return (
@@ -66,10 +47,6 @@ export default function Register({ onRegister }) {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
-        )}
-
         <form onSubmit={handleRegister} className="w-full space-y-4">
           <div>
             <label className="block mb-1 font-medium text-gray-700 text-sm">Name</label>
@@ -80,6 +57,7 @@ export default function Register({ onRegister }) {
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
               placeholder="Enter your name"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -92,6 +70,7 @@ export default function Register({ onRegister }) {
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
               placeholder="Enter your email"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -104,14 +83,26 @@ export default function Register({ onRegister }) {
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
               placeholder="Enter your password"
               required
+              disabled={isSubmitting}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-400 text-white font-bold rounded-xl transition-colors flex justify-center items-center cursor-pointer"
           >
-            Register
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+              </>
+            ) : (
+              "Register"
+            )}
           </button>
 
           <div className="text-center text-gray-400 my-3 text-sm">OR</div>
