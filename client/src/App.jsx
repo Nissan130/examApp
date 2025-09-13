@@ -19,6 +19,7 @@ import AllCreatedExams from "./pages/Examiner/AllCreatedExams";
 import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
 import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
 import PDFGenerator from "./components/PDFGenerator";
+import EnterExamCode from "./pages/Examinee/EnterExamCode";
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -77,7 +78,15 @@ function App() {
           }
         />
         <Route
-          path="/previewstartexam"
+          path="/enter-exam-code"
+          element={
+            <ProtectedRoute requiredRole="examinee">
+              <EnterExamCode />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/preview-start-exam"
           element={
             <ProtectedRoute requiredRole="examinee">
               <PreviewStartExam exam={exam} setExam={setExam} />

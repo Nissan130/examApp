@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
-import { Eye, BarChart, Copy, Check, Plus, Loader, Trash2 } from "lucide-react";
+import { Eye, BarChart, Link as LinkIcon, Plus, Loader, Trash2 } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import ConfirmDialog from "../../components/CustomConfirm";
@@ -21,7 +21,8 @@ export default function AllCreatedExams() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [copiedExamId, setCopiedExamId] = useState(null);
+  const [copiedExamCode, setCopiedExamCode] = useState(null);
+  const [copiedExamLink, setCopiedExamLink] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 9,
@@ -31,11 +32,14 @@ export default function AllCreatedExams() {
     has_prev: false
   });
 
- // Add these state variables for the confirmation dialog
+  // Add these state variables for the confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [examToDelete, setExamToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const custom_alert = useCustomAlert();
+
+  const [showExamCodeModal, setShowExamCodeModal] = useState(false);
+  const [currentExam, setCurrentExam] = useState(null);
 
   useEffect(() => {
     fetchMyExams();
@@ -69,18 +73,16 @@ export default function AllCreatedExams() {
     }
   };
 
-  const copyExamLink = (examId) => {
-    const link = `${window.location.origin}/exam/${examId}`;
-    navigator.clipboard.writeText(link)
-      .then(() => {
-        setCopiedExamId(examId);
-        setTimeout(() => setCopiedExamId(null), 2000);
-      })
-      .catch(() => alert("Failed to copy link."));
+  const copyExamLink = (exam) => {
+    console.log(exam);
+
+    setCurrentExam(exam);
+    setShowExamCodeModal(true);
+
   };
 
 
- 
+
   const confirmDelete = (examId, examName) => {
     setExamToDelete({ id: examId, name: examName });
     setShowDeleteConfirm(true);
@@ -143,6 +145,7 @@ export default function AllCreatedExams() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+
 
       {/* Add the confirmation dialog */}
       <ConfirmDialog
@@ -258,10 +261,11 @@ export default function AllCreatedExams() {
 
                     <Tooltip text="Copy Exam Link">
                       <button
-                        onClick={() => copyExamLink(exam.exam_id)}
+                        onClick={() => copyExamLink(exam)}
                         className="p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-md transition transform hover:scale-110 duration-200 flex items-center justify-center cursor-pointer"
                       >
-                        {copiedExamId === exam.exam_id ? <Check size={18} /> : <Copy size={18} />}
+                        <LinkIcon size={18}/>
+
                       </button>
                     </Tooltip>
 
@@ -285,7 +289,7 @@ export default function AllCreatedExams() {
                   <button
                     onClick={() => fetchMyExams(pagination.page - 1)}
                     disabled={!pagination.has_prev}
-                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
                   >
                     Previous
                   </button>
@@ -296,7 +300,7 @@ export default function AllCreatedExams() {
                       onClick={() => fetchMyExams(pageNum)}
                       className={`px-4 py-2 rounded-lg border ${pagination.page === pageNum
                         ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white border-gray-300 hover:bg-gray-50"
+                        : "bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
                         }`}
                     >
                       {pageNum}
@@ -306,7 +310,7 @@ export default function AllCreatedExams() {
                   <button
                     onClick={() => fetchMyExams(pagination.page + 1)}
                     disabled={!pagination.has_next}
-                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
                   >
                     Next
                   </button>
@@ -316,6 +320,95 @@ export default function AllCreatedExams() {
           </>
         )}
       </div>
+      {/* Exam Code Modal */}
+      {showExamCodeModal && currentExam && (
+        <div className="fixed inset-0 bg-cyan-45  flex items-center justify-center z-50 p-4">
+          <div className="bg-blue-100 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowExamCodeModal(false)}
+              className="absolute top-4 right-4 text-red-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Header */}
+            <div className="text-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Exam Code</h3>
+              <p className="text-gray-600 text-sm mt-1">Share this code with students</p>
+            </div>
+
+            {/* Exam Code Display */}
+            {/* Exam Code Display */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Exam Code</label>
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-md px-3 py-2">
+                <span className="font-mono text-blue-600 font-semibold">{currentExam.exam_code}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentExam.exam_code);
+                    setCopiedExamCode(currentExam.exam_code); // ✅ Fix: Use exam_code, not exam_id
+                    setTimeout(() => setCopiedExamCode(null), 2000);
+                  }}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium min-w-[60px] transition-colors duration-200 cursor-pointer"
+                >
+                  {copiedExamCode === currentExam.exam_code ? ( // ✅ Fix: Compare with exam_code
+                    <span className="text-green-600 font-semibold">✓ Copied</span>
+                  ) : (
+                    "Copy"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Shareable Link */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Shareable Link</label>
+              <div className="bg-white border border-gray-300 rounded-md p-3 mb-3">
+                <p className="text-xs text-gray-600 break-all">
+                  {`${window.location.origin}/join-exam?code=${currentExam.exam_code}`}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/join-exam?code=${currentExam.exam_code}`);
+                  setCopiedExamLink(currentExam.exam_code); // ✅ Fix: Use exam_code
+                  setTimeout(() => setCopiedExamLink(null), 2000);
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-200 flex items-center justify-center cursor-pointer"
+              >
+                {copiedExamLink === currentExam.exam_code ? ( // ✅ Fix: Compare with exam_code, not exam_id
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Link
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Tip */}
+            <p className="text-xs text-gray-500 text-center">
+              Students can join using the code or by clicking the link
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

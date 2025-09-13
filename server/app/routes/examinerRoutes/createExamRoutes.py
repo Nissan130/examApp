@@ -4,8 +4,31 @@ import uuid
 from app.utils.cloudinary_utils import upload_image
 from app.routes.authRoutes.userRoutes import token_required
 import json
+import random
+import string
+
 
 create_exam_bp = Blueprint("create_exam_bp", __name__, url_prefix="/api/exam")
+
+
+# --- ADD THIS HELPER FUNCTION --- #
+def generate_exam_code(length=9):
+    """
+    Generates a random alphanumeric code in format: X7B9-2K3M
+    Avoids ambiguous characters (0, O, 1, I, L)
+    """
+    # Define a safe alphabet
+    alphabet = string.digits + string.ascii_uppercase
+    # Remove ambiguous characters
+    for ambiguous_char in "0O1IL":
+        alphabet = alphabet.replace(ambiguous_char, "")
+    
+    # Generate the code parts
+    part1 = ''.join(random.choice(alphabet) for _ in range(4))
+    part2 = ''.join(random.choice(alphabet) for _ in range(4))
+    
+    return f"{part1}-{part2}"
+
 
 # -----------------------------
 # Create Exam with Questions (all in one request)
@@ -34,7 +57,18 @@ def create_full_exam(user):
             if not data.get(field):
                 return jsonify({"status": "error", "message": f"{field} is required"}), 400
        
-       
+        # --- ADD EXAM CODE GENERATION LOGIC HERE --- #
+        # Generate a unique exam code
+        is_code_unique = False
+        exam_code = None
+        
+        while not is_code_unique:
+            exam_code = generate_exam_code()
+            # Check if this code already exists in the database
+            existing_exam = Exam.query.filter_by(exam_code=exam_code).first()
+            if not existing_exam:
+                is_code_unique = True
+        # --- END EXAM CODE GENERATION --- #
        
         # Parse JSON data
         data = json.loads(request.form.get("exam_data"))
@@ -43,6 +77,7 @@ def create_full_exam(user):
         new_exam = Exam(
             exam_id=uuid.uuid4(),
             exam_name=data.get("exam_name"),
+            exam_code=exam_code,  
             subject=data.get("subject"),
             chapter=data.get("chapter"),
             class_name=data.get("class_name"),
@@ -97,7 +132,7 @@ def create_full_exam(user):
             db.session.add(new_question)
 
         db.session.commit()
-        return jsonify({"status": "success", "exam_id": str(new_exam.exam_id)})
+        return jsonify({"status": "success", "exam_id": str(new_exam.exam_id), "exam_code": exam_code})
 
     except json.JSONDecodeError:
         return jsonify({"status": "error", "message": "Invalid JSON in exam_data"}), 400

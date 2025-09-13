@@ -33,6 +33,9 @@ export default function CreateExam() {
   const { user, token } = useContext(GlobalContext);
   const user_id = user.id;
 
+  const [createdExamCode, setCreatedExamCode] = useState(null);
+  const [createdExamLink, setCreatedExamLink] = useState(null);
+
   // Questions state
   const [questions, setQuestions] = useState([
     {
@@ -45,6 +48,8 @@ export default function CreateExam() {
       correctOption: null,
     },
   ]);
+
+
 
   // State for tracking paste operations
   const [activePasteArea, setActivePasteArea] = useState(null);
@@ -249,9 +254,8 @@ export default function CreateExam() {
       );
 
       if (response.data.status === "success") {
-        // alert("Exam created successfully!");
         custom_alert.success("Exam created successfully!")
-        navigate("/examiner/showexams");
+        navigate("/examiner/all-created-exam");
       } else {
         alert("Failed to create exam: " + response.data.message);
       }
@@ -722,7 +726,7 @@ export default function CreateExam() {
                   <button
                     onClick={handleCreateExam}
                     disabled={!isQuestionsValid() || creating}
-                    className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center justify-center text-sm min-w-[120px]"
+                    className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center justify-center text-sm min-w-[120px] cursor-pointer"
                   >
                     {creating ? (
                       <>

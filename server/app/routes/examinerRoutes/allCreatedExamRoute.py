@@ -29,6 +29,7 @@ def get_my_exams(user):
             exams_list.append({
                 'exam_id': str(exam.exam_id),
                 'exam_name': exam.exam_name,
+                'exam_code': exam.exam_code,
                 'subject': exam.subject,
                 'chapter': exam.chapter,
                 'class_name': exam.class_name,
@@ -71,6 +72,7 @@ def get_exam_details(user, exam_id):
         exam_data = {
             'exam_id': str(exam.exam_id),
             'exam_name': exam.exam_name,
+            'exam_code': exam.exam_code,
             'subject': exam.subject,
             'chapter': exam.chapter,
             'class_name': exam.class_name,

@@ -1,8 +1,8 @@
-"""Initial migrate
+"""initialize
 
-Revision ID: bcd6f0f64036
+Revision ID: 873a009c0215
 Revises: 
-Create Date: 2025-09-11 19:24:03.088849
+Create Date: 2025-09-13 02:32:04.245002
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'bcd6f0f64036'
+revision = '873a009c0215'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,8 +32,10 @@ def upgrade():
     op.create_table('exams',
     sa.Column('exam_id', sa.UUID(), nullable=False),
     sa.Column('exam_name', sa.String(length=255), nullable=False),
+    sa.Column('exam_code', sa.String(length=20), nullable=False),
     sa.Column('subject', sa.String(length=255), nullable=False),
     sa.Column('chapter', sa.String(length=255), nullable=False),
+    sa.Column('class_name', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('total_marks', sa.Integer(), nullable=False),
     sa.Column('passing_marks', sa.String(length=100), nullable=True),
@@ -48,6 +50,7 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('exam_id'),
+    sa.UniqueConstraint('exam_code'),
     sa.UniqueConstraint('exam_id')
     )
     op.create_table('questions',

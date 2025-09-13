@@ -10,6 +10,7 @@ class Exam(BaseModel):
     __tablename__ = "exams"
     exam_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     exam_name = db.Column(db.String(255), nullable=False)
+    exam_code = db.Column(db.String(20), unique=True, nullable=False)
     subject = db.Column(db.String(255), nullable=False)
     chapter = db.Column(db.String(255), nullable=False)
     class_name = db.Column(db.String(255), nullable=False)
