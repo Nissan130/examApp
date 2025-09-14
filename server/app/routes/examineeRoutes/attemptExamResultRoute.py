@@ -195,7 +195,7 @@ def get_exam_leaderboard(user, exam_id):
             return jsonify({'error': 'Invalid exam ID format'}), 400
 
         # Get the exam details
-        from app.models.examinerModels import Exam  # Import your Exam model
+        from app.models.examinerModels.createExamModels import Exam  # Import your Exam model
         exam = Exam.query.get(exam_uuid)
         if not exam:
             return jsonify({'error': 'Exam not found'}), 404
@@ -212,7 +212,7 @@ def get_exam_leaderboard(user, exam_id):
         
         for rank, attempt in enumerate(attempts, 1):
             # Get examinee details
-            from app.models.authModels import User  # Import your User model
+            from app.models.authModels.user import User  # Import your User model
             examinee = User.query.get(attempt.examinee_id)
             
             if examinee:
