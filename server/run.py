@@ -1,7 +1,8 @@
 from app import create_app
-from app.config import get_config
 
-app = create_app(get_config())
+# Create Flask app instance using factory
+app = create_app()
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    # Run Flask server
+    app.run()
