@@ -220,7 +220,7 @@ def get_exam_leaderboard(user, exam_id):
                     'attempt_id': str(attempt.attempt_result_id),
                     'rank': rank,
                     'examinee_id': str(examinee.id),
-                    'name': f"{examinee.first_name} {examinee.last_name}",
+                    'name': examinee.name,
                     'score': attempt.score,  # This should be the percentage score
                     'correct_answers': attempt.correct_answers,
                     'wrong_answers': attempt.wrong_answers,
