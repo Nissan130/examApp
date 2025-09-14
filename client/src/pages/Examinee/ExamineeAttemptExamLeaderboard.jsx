@@ -64,7 +64,7 @@ const mockLeaderboardData = [
   }
 ];
 
-export default function ExamineeLeaderBoard() {
+export default function ExamineeAttemptExamLeaderboard() {
   const navigate = useNavigate();
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [selectedExam, setSelectedExam] = useState("Mathematics Final");
@@ -156,6 +156,24 @@ export default function ExamineeLeaderBoard() {
           
           {/* Exam Filter */}
         
+        </div>
+
+                {/* Stats Summary */}
+        <div className="mt-8 mb-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-blue-600">{leaderboardData.length}</div>
+            <div className="text-sm text-gray-600">Total Participants</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {Math.round(leaderboardData.reduce((sum, item) => sum + item.score, 0) / leaderboardData.length)}%
+            </div>
+            <div className="text-sm text-gray-600">Average Score</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-md text-center">
+            <div className="text-2xl font-bold text-amber-600">{leaderboardData[0]?.score}%</div>
+            <div className="text-sm text-gray-600">Top Score</div>
+          </div>
         </div>
 
         {/* Leaderboard Table */}
@@ -267,23 +285,7 @@ export default function ExamineeLeaderBoard() {
           </button>
         </div>
 
-        {/* Stats Summary */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="text-2xl font-bold text-blue-600">{leaderboardData.length}</div>
-            <div className="text-sm text-gray-600">Total Participants</div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {Math.round(leaderboardData.reduce((sum, item) => sum + item.score, 0) / leaderboardData.length)}%
-            </div>
-            <div className="text-sm text-gray-600">Average Score</div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-md text-center">
-            <div className="text-2xl font-bold text-amber-600">{leaderboardData[0]?.score}%</div>
-            <div className="text-sm text-gray-600">Top Score</div>
-          </div>
-        </div>
+
       </div>
     </div>
   );

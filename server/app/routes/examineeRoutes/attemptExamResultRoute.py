@@ -180,3 +180,67 @@ def examineeAttempExamResult(user):
         },
         'questions': attempted_questions
     }), 200
+
+
+
+#atempt exam result leaderboard
+@examinee_attempt_exam_result_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
+@token_required
+def get_exam_leaderboard(user, exam_id):
+    try:
+        # Validate exam_id
+        try:
+            exam_uuid = uuid.UUID(exam_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid exam ID format'}), 400
+
+        # Get the exam details
+        from app.models.examinerModels import Exam  # Import your Exam model
+        exam = Exam.query.get(exam_uuid)
+        if not exam:
+            return jsonify({'error': 'Exam not found'}), 404
+
+        # Get all attempt results for this exam, ordered by score descending
+        attempts = ExamineeAttemptExamResult.query.filter_by(
+            exam_id=exam_uuid
+        ).order_by(
+            ExamineeAttemptExamResult.score.desc(),
+            ExamineeAttemptExamResult.time_taken_minutes.asc()
+        ).all()
+
+        leaderboard_data = []
+        
+        for rank, attempt in enumerate(attempts, 1):
+            # Get examinee details
+            from app.models.authModels import User  # Import your User model
+            examinee = User.query.get(attempt.examinee_id)
+            
+            if examinee:
+                leaderboard_data.append({
+                    'attempt_id': str(attempt.attempt_result_id),
+                    'rank': rank,
+                    'examinee_id': str(examinee.id),
+                    'name': f"{examinee.first_name} {examinee.last_name}",
+                    'score': attempt.score,  # This should be the percentage score
+                    'correct_answers': attempt.correct_answers,
+                    'wrong_answers': attempt.wrong_answers,
+                    'unanswered_questions': attempt.unanswered_questions,
+                    'time_taken_minutes': attempt.time_taken_minutes,
+                    'exam_name': exam.exam_name,
+                    'created_at': attempt.created_at.isoformat() if attempt.created_at else None
+                })
+
+        return jsonify({
+            'status': 'success',
+            'exam': {
+                'exam_id': str(exam.id),
+                'exam_name': exam.exam_name,
+                'total_questions': exam.total_questions if hasattr(exam, 'total_questions') else None,
+                'total_marks': exam.total_marks if hasattr(exam, 'total_marks') else None
+            },
+            'leaderboard': leaderboard_data
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching leaderboard: {str(e)}")
+        return jsonify({'error': 'Failed to fetch leaderboard data'}), 500
