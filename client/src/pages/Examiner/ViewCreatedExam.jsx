@@ -4,6 +4,7 @@ import { ArrowLeft, Download, Edit } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import { pdf, Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
+import { API_BASE_URL } from "../../utils/api";
 
 // Register Bengali font
 // Font.register({
@@ -52,7 +53,7 @@ export default function ViewCreatedExam() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://127.0.0.1:5000/api/exam/my-created-exams/view-created-exam/${examId}`,
+        `${API_BASE_URL}/api/exam/my-created-exams/view-created-exam/${examId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.status === "success") setExam(response.data.exam);

@@ -2,6 +2,7 @@
 import { createContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useCustomAlert } from "./CustomAlertContext";
+import {API_BASE_URL} from '../utils/api'
 
 // Create context
 export const GlobalContext = createContext();
@@ -67,7 +68,7 @@ export const GlobalProvider = ({ children }) => {
   // Register function
   const register = async (name, email, password) => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -92,7 +93,7 @@ export const GlobalProvider = ({ children }) => {
   // Login function
   const login = async (email, password, rememberMe = false) => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

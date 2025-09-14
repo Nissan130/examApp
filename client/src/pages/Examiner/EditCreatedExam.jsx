@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { GlobalContext } from "../../context/GlobalContext";
 import { Loader } from "lucide-react";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function EditCreatedExam() {
     const { examId } = useParams();
@@ -50,7 +51,7 @@ export default function EditCreatedExam() {
             setError("");
 
             const response = await axios.get(
-                `http://127.0.0.1:5000/api/exam/my-created-exams/view-created-exam/${examId}`,
+                `${API_BASE_URL}/api/exam/my-created-exams/view-created-exam/${examId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

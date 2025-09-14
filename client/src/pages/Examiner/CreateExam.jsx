@@ -4,6 +4,7 @@ import axios from "axios";
 import { GlobalContext } from "../../context/GlobalContext";
 import { Loader } from "lucide-react";
 import { useCustomAlert } from "../../context/CustomAlertContext";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function CreateExam() {
   const custom_alert = useCustomAlert();
@@ -15,6 +16,7 @@ export default function CreateExam() {
   const [examName, setExamName] = useState("");
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
+
   const [classes, setClasses] = useState("");
   const [description, setDescription] = useState("");
   const [totalMarks, setTotalMarks] = useState("");
@@ -244,7 +246,7 @@ export default function CreateExam() {
       });
 
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/exam/create-exam",
+        `${API_BASE_URL}/api/exam/create-exam`,
         formData,
         {
           headers: {

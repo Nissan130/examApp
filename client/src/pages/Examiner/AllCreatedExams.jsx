@@ -5,6 +5,7 @@ import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import ConfirmDialog from "../../components/CustomConfirm";
 import { useCustomAlert } from "../../context/CustomAlertContext";
+import { API_BASE_URL } from "../../utils/api";
 
 // Reusable Tooltip Component
 const Tooltip = ({ children, text }) => (
@@ -51,7 +52,7 @@ export default function AllCreatedExams() {
       setError("");
 
       const response = await axios.get(
-        `http://127.0.0.1:5000/api/exam/my-created-exams?page=${page}&per_page=${pagination.per_page}`,
+        `${API_BASE_URL}/api/exam/my-created-exams?page=${page}&per_page=${pagination.per_page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -94,7 +95,7 @@ export default function AllCreatedExams() {
     try {
       setDeleting(true);
       const response = await axios.delete(
-        `http://127.0.0.1:5000/api/exam/my-created-exams/delete-exam/${examToDelete.id}`,
+        `${API_BASE_URL}/api/exam/my-created-exams/delete-exam/${examToDelete.id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

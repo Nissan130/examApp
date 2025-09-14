@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ExamineeContext } from "../../context/ExamineeContext";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function EnterExamCode() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function EnterExamCode() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/api/examinee/enter-exam-code",
+        `${API_BASE_URL}/api/examinee/enter-exam-code`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

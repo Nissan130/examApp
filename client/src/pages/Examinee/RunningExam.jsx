@@ -5,6 +5,7 @@ import RunningExamQuestionCard from "../../components/RunningExamQuestionCard";
 import { ExamineeContext } from "../../context/ExamineeContext";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function RunningExam() {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ export default function RunningExam() {
       };
 
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/examinee/attempt-exam-result",
+        `${API_BASE_URL}/api/examinee/attempt-exam-result`,
         payload,
         {
           headers: {
