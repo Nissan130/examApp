@@ -6,7 +6,7 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
-def generate_jwt(user_id, expires_in=3600):
+def generate_jwt(user_id, expires_in=2592000):
     try:
         # Ensure user_id is a string
         user_id_str = str(user_id)
