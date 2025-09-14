@@ -40,12 +40,16 @@ def create_app(config_class=Config):
     @app.shell_context_processor
     def make_shell_context():
         from .models import User
-        from .models import db, User, Exam, Question, Option, ExamAttempt, Answer
+        from .models import db, User, Exam, Question, ExamineeAttemptExamResult, ExamineeAttemptQuestions
         return {
         'db': db,
         'User': User,
         'Exam': Exam,
         'Question': Question,
+        'ExamineeAttemptExamResult': ExamineeAttemptExamResult,
+        'ExamineeAttemptQuestions':ExamineeAttemptQuestions
+
+
     }
 
 

@@ -1,30 +1,42 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-export default function Timer({ duration, onTimeUp }) {
-  // Convert duration from minutes to seconds
-  const [time, setTime] = useState(duration * 60);
+export default function Timer({ duration, onTimeUp, onTimeUpdate }) {
+  const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert minutes to seconds
+  const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          onTimeUp();
-          return 0;
+    if (timeLeft <= 0) {
+      onTimeUp();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => {
+        const newTime = prevTime - 1;
+        
+        // Calculate elapsed minutes for the backend
+        const newElapsedMinutes = duration - (newTime / 60);
+        if (Math.floor(newElapsedMinutes) > elapsedMinutes) {
+          setElapsedMinutes(Math.floor(newElapsedMinutes));
+          onTimeUpdate && onTimeUpdate(Math.floor(newElapsedMinutes));
         }
-        return prev - 1;
+        
+        return newTime;
       });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [onTimeUp]);
+    return () => clearInterval(timer);
+  }, [timeLeft, duration, onTimeUp, onTimeUpdate, elapsedMinutes]);
 
-  const minutes = Math.floor(time / 60);
-  const seconds = time % 60;
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
 
   return (
-    <div className="text-lg font-bold text-red-600">
-      Remaining Time: {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
-    </div>
+    <span className="font-mono font-semibold">
+      {formatTime(timeLeft)}
+    </span>
   );
 }

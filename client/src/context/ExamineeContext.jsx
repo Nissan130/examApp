@@ -1,5 +1,5 @@
 // context/ExamineeContext.js
-import { createContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 // Create the context
 export const ExamineeContext = createContext();

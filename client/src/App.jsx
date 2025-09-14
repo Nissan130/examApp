@@ -20,6 +20,8 @@ import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
 import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
 import PDFGenerator from "./components/PDFGenerator";
 import EnterExamCode from "./pages/Examinee/EnterExamCode";
+import AttempExamResultShow from "./pages/Examinee/AttemptExamResultShow";
+import ExamineeLeaderBoard from "./pages/Examinee/ExamineeLeaderboard";
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -37,13 +39,13 @@ function App() {
   // Protected Route wrapper with role check
   const ProtectedRoute = ({ children, requiredRole = null }) => {
     if (!user) return <Navigate to="/login" />;
-    
+
     // If a specific role is required but user doesn't have it
     if (requiredRole && currentRole !== requiredRole) {
       // Redirect to the dashboard of their current role
       return <Navigate to={`/${currentRole}/dashboard`} />;
     }
-    
+
     return children;
   };
 
@@ -98,6 +100,22 @@ function App() {
           element={
             <ProtectedRoute requiredRole="examinee">
               <RunningExam exam={exam} setExam={setExam} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examinee/attempt-exam/result"
+          element={
+            <ProtectedRoute requiredRole="examinee">
+              <AttempExamResultShow/>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examinee/attempt-exam/leaderboard"
+          element={
+            <ProtectedRoute requiredRole="examinee">
+              <ExamineeLeaderBoard/>
             </ProtectedRoute>
           }
         />

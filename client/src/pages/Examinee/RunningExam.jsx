@@ -3,18 +3,28 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Timer from "../../components/Timer";
 import RunningExamQuestionCard from "../../components/RunningExamQuestionCard";
 import { ExamineeContext } from "../../context/ExamineeContext";
+import { GlobalContext } from "../../context/GlobalContext";
+import axios from "axios";
 
 export default function RunningExam() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { examineeAttemptExam } = useContext(ExamineeContext);
+  const { token } = useContext(GlobalContext);
 
+  console.log("user token: ", token);
+  
   // Prefer context exam, fallback to state
   const exam = examineeAttemptExam || state?.exam;
 
   const [answers, setAnswers] = useState({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeTaken, setTimeTaken] = useState(0);
   const questions = exam?.questions || [];
+
+  console.log(answers);
+
 
   if (!exam) {
     return (
@@ -47,14 +57,80 @@ export default function RunningExam() {
     setAnswers(newAnswers);
   };
 
-  const handleSubmit = () => {
-    alert("Exam submitted successfully!");
-    navigate("/examinee/dashboard");
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    try {
+      // Map questions to include options, correct answer, and user selected answer
+      const questionsPayload = exam.questions.map(q => ({
+        question_id: q.question_id,
+        question_text: q.question_text,
+        question_image_url: q.question_image_url || null,
+        question_image_id: q.question_image_id || null,
+        marks: q.marks,
+        correct_answer: q.correct_answer,
+        options: Object.entries(q.options).map(([letter, opt]) => ({
+          option_letter: letter,
+          option_text: opt.text,
+          option_image_url: opt.image_url || null,
+          option_image_id: opt.image_id || null,
+          is_correct: q.correct_answer === letter,  // marks which is correct
+          selected_by_user: answers[q.question_id] === letter // marks what user selected
+        }))
+      }));
+
+      const payload = {
+        exam_id: exam.exam_id,
+        exam_name: exam.exam_name,
+        exam_code: exam.exam_code,
+        subject: exam.subject,
+        chapter: exam.chapter,
+        class_name: exam.class_name,
+        total_marks: exam.total_marks,
+        total_time_minutes: exam.total_time_minutes,
+        time_taken_minutes: timeTaken,
+        // user_id: user.id,  // include examinee id
+        questions: questionsPayload
+      };
+
+      const response = await axios.post(
+        "http://127.0.0.1:5000/api/examinee/attempt-exam-result",
+        payload,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (response.data.status === 'success') {
+        alert("Exam submitted successfully!");
+        navigate("/examinee/attempt-exam/result", {
+          state: {
+            examResult: response.data,
+            examName: exam.exam_name
+          }
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to submit exam');
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert(`Error submitting exam: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   const handleTimeUp = () => {
     alert("Time is up! Submitting exam...");
     handleSubmit();
+  };
+
+  const handleTimeUpdate = (minutesElapsed) => {
+    setTimeTaken(minutesElapsed);
   };
 
   const answeredCount = Object.keys(answers).length;
@@ -77,7 +153,11 @@ export default function RunningExam() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <Timer duration={exam.total_time_minutes} onTimeUp={handleTimeUp} />
+                  <Timer
+                    duration={exam.total_time_minutes}
+                    onTimeUp={handleTimeUp}
+                    onTimeUpdate={handleTimeUpdate}
+                  />
                 </div>
                 <div className="text-xs text-blue-700 mt-1 flex items-center justify-center gap-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,12 +169,25 @@ export default function RunningExam() {
 
               <button
                 onClick={() => setShowSubmitConfirm(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 rounded-md shadow hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium flex items-center gap-1 text-sm"
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 rounded-md shadow hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium flex items-center gap-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Submit
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Submit
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -103,7 +196,7 @@ export default function RunningExam() {
 
       <div className="max-w-6xl mx-auto mt-12">
         <div className="flex flex-col lg:flex-row gap-5">
-          {/* Question Navigation - Not fixed on small screens */}
+          {/* Question Navigation */}
           <div className="w-full lg:w-1/4 bg-white p-4 rounded-lg shadow-xs border border-gray-100 h-fit lg:sticky lg:top-28">
             <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,14 +210,14 @@ export default function RunningExam() {
                   key={q.question_id}
                   href={`#question-${q.question_id}`}
                   className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium transition-all
-                    ${answers[q.question_id] ? 'bg-green-100 text-green-700 border border-green-200' : 
+                    ${answers[q.question_id] ? 'bg-green-100 text-green-700 border border-green-200' :
                       'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}`}
                 >
                   {idx + 1}
                 </a>
               ))}
             </div>
-            
+
             <div className="mt-4 pt-3 border-t border-gray-200">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-3 h-3 rounded bg-green-100 border border-green-300"></div>
@@ -167,21 +260,23 @@ export default function RunningExam() {
             </div>
             <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">Submit Exam?</h3>
             <p className="text-gray-600 text-center mb-5 text-sm ">
-              You have answered {answeredCount} out of {questions.length} questions. 
+              You have answered {answeredCount} out of {questions.length} questions.
               Are you sure you want to submit your exam?
             </p>
             <div className="flex gap-2 justify-center">
               <button
                 onClick={() => setShowSubmitConfirm(false)}
-                className="px-4 py-2 bg-red-400 text-gray-800 rounded-md hover:bg-red-500 transition-colors font-medium text-sm cursor-pointer"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors font-medium text-sm cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm cursor-pointer"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm cursor-pointer disabled:opacity-50"
               >
-                Submit Exam
+                {isSubmitting ? 'Submitting...' : 'Submit Exam'}
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@ import React from "react";
 
 export default function RunningExamQuestionCard({ question, selected, onAnswer, onClearAnswer, number }) {
   const optionLetters = ["A", "B", "C", "D"];
+  
 
   return (
     <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-xs">
