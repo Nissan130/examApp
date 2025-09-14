@@ -4,7 +4,6 @@ from .config import Config
 from .models import db
 from flask_cors import CORS
 
-
 migrate = Migrate()
 
 def create_app(config_class=Config):
@@ -12,11 +11,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Enable CORS for all routes
-     # Enable CORS for all routes
-    # Enable CORS for all routes
     CORS(app, resources={r"/*": {"origins": "*"}})
-
-
 
     # Initialize database and migrations
     db.init_app(app)
@@ -39,18 +34,14 @@ def create_app(config_class=Config):
     # Shell context for flask shell
     @app.shell_context_processor
     def make_shell_context():
-        from .models import User
-        from .models import db, User, Exam, Question, ExamineeAttemptExamResult, ExamineeAttemptQuestions
+        from .models import User, Exam, Question, ExamineeAttemptExamResult, ExamineeAttemptQuestions
         return {
-        'db': db,
-        'User': User,
-        'Exam': Exam,
-        'Question': Question,
-        'ExamineeAttemptExamResult': ExamineeAttemptExamResult,
-        'ExamineeAttemptQuestions':ExamineeAttemptQuestions
-
-
-    }
-
+            'db': db,
+            'User': User,
+            'Exam': Exam,
+            'Question': Question,
+            'ExamineeAttemptExamResult': ExamineeAttemptExamResult,
+            'ExamineeAttemptQuestions': ExamineeAttemptQuestions
+        }
 
     return app
