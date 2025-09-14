@@ -410,7 +410,7 @@ export default function EditCreatedExam() {
             });
 
             const response = await axios.put(
-                `http://127.0.0.1:5000/api/exam/my-created-exams/update-exam/${examId}`,
+                `${API_BASE_URL}/api/exam/my-created-exams/update-exam/${examId}`,
                 formData,
                 {
                     headers: {

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function ExamineeDashboard() {
   const actions = [
-    { title: "Completed Exams", link: "/prevexam", color: "bg-blue-500 hover:bg-blue-600" },
+    // { title: "Completed Exams", link: "/prevexam", color: "bg-blue-500 hover:bg-blue-600" },
     // Optional future actions:
     { title: "Join New Exam", link: "/enter-exam-code", color: "bg-purple-500 hover:bg-purple-600" },
     // { title: "Practice Questions", link: "/practice", color: "bg-green-500 hover:bg-green-600" },

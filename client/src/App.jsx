@@ -22,6 +22,7 @@ import PDFGenerator from "./components/PDFGenerator";
 import EnterExamCode from "./pages/Examinee/EnterExamCode";
 import AttempExamResultShow from "./pages/Examinee/AttemptExamResultShow";
 import ExamineeLeaderBoard from "./pages/Examinee/ExamineeLeaderboard";
+import ExamAttemptResultDetails from "./pages/Examinee/ExamAttemptResultDetails";
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -107,7 +108,15 @@ function App() {
           path="/examinee/attempt-exam/result"
           element={
             <ProtectedRoute requiredRole="examinee">
-              <AttempExamResultShow/>
+              <AttempExamResultShow />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examinee/attempt-exam/result-details"
+          element={
+            <ProtectedRoute requiredRole="examinee">
+              <ExamAttemptResultDetails />
             </ProtectedRoute>
           }
         />
@@ -115,7 +124,7 @@ function App() {
           path="/examinee/attempt-exam/leaderboard"
           element={
             <ProtectedRoute requiredRole="examinee">
-              <ExamineeLeaderBoard/>
+              <ExamineeLeaderBoard />
             </ProtectedRoute>
           }
         />

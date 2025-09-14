@@ -176,9 +176,30 @@ export default function AttempExamResultShow() {
             View Leaderboard
           </button>
 
+          {/* View Details Button */}
+          <button
+            onClick={() => navigate('/examinee/attempt-exam/exam-details', { 
+              state: { 
+                examResult, 
+                examName,
+                questions: examResult.questions || [],
+                timeTaken: examResult.time_taken_minutes || 0,
+                examId: examResult.exam_id,
+                attemptId: examResult.attempt_result_id
+              } 
+            })}
+            className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:from-teal-700 hover:to-cyan-700 transition-all duration-200 shadow-md font-semibold text-base flex items-center justify-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            View Details
+          </button>
+
+          {/* Print Results Button with changed color */}
           <button
             onClick={() => window.print()}
-            className="w-full sm:w-auto px-8 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 border border-gray-200 shadow-sm font-semibold text-base flex items-center justify-center"
+            className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-md font-semibold text-base flex items-center justify-center"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z" />
@@ -186,8 +207,6 @@ export default function AttempExamResultShow() {
             Print Results
           </button>
         </div>
-
-
 
         {/* Subtle Celebration Confetti */}
         <div className="fixed inset-0 pointer-events-none z-50 opacity-5">

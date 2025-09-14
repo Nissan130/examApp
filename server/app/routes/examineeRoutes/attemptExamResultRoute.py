@@ -18,6 +18,13 @@ def examineeAttempExamResult(user):
     exam_id = data.get('exam_id')
     questions_payload = data.get('questions', [])  # Full questions + options from frontend
     time_taken = data.get('time_taken_minutes', 0)
+    exam_name = data.get('exam_name')
+    exam_code = data.get('exam_code')
+    subject = data.get('subject')
+    chapter = data.get('chapter')
+    class_name = data.get('class_name')
+    total_marks = data.get('total_marks')
+    total_time_minutes = data.get('total_time_minutes')
 
     if not exam_id:
         return jsonify({'error': 'Exam ID is required'}), 400
@@ -42,6 +49,7 @@ def examineeAttempExamResult(user):
     db.session.flush()  # get attempt_result_id
 
     # Save each question attempt
+    attempted_questions = []
     for q in questions_payload:
         selected_label = None
         # Determine user selected option
@@ -59,6 +67,52 @@ def examineeAttempExamResult(user):
         else:
             wrong_count += 1
 
+        # Prepare question data for response - ensure all fields are included
+        question_data = {
+            'question_id': q.get('question_id'),
+            'question_text': q.get('question_text'),
+            'question_image_url': q.get('question_image_url'),
+            'question_image_id': q.get('question_image_id'),
+            'marks': q.get('marks', 1),  # Include marks
+            'correct_answer': q.get('correct_answer'),
+            'selected_answer': selected_label,
+            'is_correct': is_correct,
+            'options': []
+        }
+
+        # Add options data - ensure all options are included even if empty
+        options_data = []
+        for opt in q.get('options', []):
+            option_data = {
+                'option_letter': opt.get('option_letter'),
+                'option_text': opt.get('option_text'),
+                'option_image_url': opt.get('option_image_url'),
+                'option_image_id': opt.get('option_image_id'),
+                'is_correct': opt.get('option_letter') == q.get('correct_answer'),
+                'selected_by_user': opt.get('selected_by_user', False)
+            }
+            options_data.append(option_data)
+        
+        # Ensure we always have 4 options (A, B, C, D) even if some are missing
+        for letter in ['A', 'B', 'C', 'D']:
+            existing_option = next((opt for opt in options_data if opt['option_letter'] == letter), None)
+            if not existing_option:
+                options_data.append({
+                    'option_letter': letter,
+                    'option_text': '',
+                    'option_image_url': None,
+                    'option_image_id': None,
+                    'is_correct': False,
+                    'selected_by_user': False
+                })
+        
+        # Sort options by letter (A, B, C, D)
+        options_data.sort(key=lambda x: x['option_letter'])
+        question_data['options'] = options_data
+        
+        attempted_questions.append(question_data)
+
+        # Save to database
         attempt_question = ExamineeAttemptQuestions(
             attempt_result_id=attempt_result.attempt_result_id,
             original_question_id=uuid.UUID(q.get('question_id')),
@@ -66,19 +120,19 @@ def examineeAttempExamResult(user):
             question_image_url=q.get('question_image_url'),
             question_image_id=q.get('question_image_id'),
 
-            option_a_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'A'), None),
+            option_a_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'A'), ''),
             option_a_image_url=next((opt.get('option_image_url') for opt in q.get('options', []) if opt.get('option_letter') == 'A'), None),
             option_a_image_id=next((opt.get('option_image_id') for opt in q.get('options', []) if opt.get('option_letter') == 'A'), None),
 
-            option_b_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'B'), None),
+            option_b_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'B'), ''),
             option_b_image_url=next((opt.get('option_image_url') for opt in q.get('options', []) if opt.get('option_letter') == 'B'), None),
             option_b_image_id=next((opt.get('option_image_id') for opt in q.get('options', []) if opt.get('option_letter') == 'B'), None),
 
-            option_c_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'C'), None),
+            option_c_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'C'), ''),
             option_c_image_url=next((opt.get('option_image_url') for opt in q.get('options', []) if opt.get('option_letter') == 'C'), None),
             option_c_image_id=next((opt.get('option_image_id') for opt in q.get('options', []) if opt.get('option_letter') == 'C'), None),
 
-            option_d_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'D'), None),
+            option_d_text=next((opt.get('option_text') for opt in q.get('options', []) if opt.get('option_letter') == 'D'), ''),
             option_d_image_url=next((opt.get('option_image_url') for opt in q.get('options', []) if opt.get('option_letter') == 'D'), None),
             option_d_image_id=next((opt.get('option_image_id') for opt in q.get('options', []) if opt.get('option_letter') == 'D'), None),
 
@@ -100,13 +154,29 @@ def examineeAttempExamResult(user):
         db.session.rollback()
         return jsonify({'status':'error', 'message': f'Database commit failed: {str(e)}'}), 500
 
+    # Return comprehensive response that frontend can use directly
     return jsonify({
         'status': 'success',
         'message': 'Exam attempt saved successfully',
-        'attempt_result_id': str(attempt_result.attempt_result_id),
-        'total_questions': attempt_result.total_questions,
-        'score': attempt_result.score,
-        'correct_answers': correct_count,
-        'wrong_answers': wrong_count,
-        'unanswered_questions': unanswered_count
+        'attempt_result': {
+            'examinee_id': str(examinee_id),
+            'exam_id': exam_id,
+            'score': correct_count,
+            'total_questions': total_questions,
+            'correct_answers': correct_count,
+            'wrong_answers': wrong_count,
+            'unanswered_questions': unanswered_count,
+            'time_taken_minutes': time_taken,
+            'created_at': attempt_result.created_at.isoformat() if attempt_result.created_at else None
+        },
+        'exam_details': {
+            'exam_name': exam_name,
+            'exam_code': exam_code,
+            'subject': subject,
+            'chapter': chapter,
+            'class_name': class_name,
+            'total_marks': total_marks,
+            'total_time_minutes': total_time_minutes
+        },
+        'questions': attempted_questions
     }), 200

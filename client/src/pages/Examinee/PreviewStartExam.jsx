@@ -59,7 +59,7 @@ export default function PreviewStartExam() {
             onClick={() =>
               navigate("/runningexam", { state: { exam } })
             }
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition transform hover:scale-105 duration-200"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition transform hover:scale-105 duration-200 cursor-pointer"
           >
             Start Exam
           </button>

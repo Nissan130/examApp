@@ -4,6 +4,7 @@ import Timer from "../../components/Timer";
 import RunningExamQuestionCard from "../../components/RunningExamQuestionCard";
 import { ExamineeContext } from "../../context/ExamineeContext";
 import { GlobalContext } from "../../context/GlobalContext";
+import { useCustomAlert } from "../../context/CustomAlertContext";
 import axios from "axios";
 import { API_BASE_URL } from "../../utils/api";
 
@@ -12,6 +13,7 @@ export default function RunningExam() {
   const { state } = useLocation();
   const { examineeAttemptExam } = useContext(ExamineeContext);
   const { token } = useContext(GlobalContext);
+  const custom_alert= useCustomAlert();
 
   console.log("user token: ", token);
   
@@ -24,7 +26,6 @@ export default function RunningExam() {
   const [timeTaken, setTimeTaken] = useState(0);
   const questions = exam?.questions || [];
 
-  console.log(answers);
 
 
   if (!exam) {
@@ -58,75 +59,79 @@ export default function RunningExam() {
     setAnswers(newAnswers);
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+ // In your RunningExam component's handleSubmit function
+const handleSubmit = async () => {
+  setIsSubmitting(true);
 
-    try {
-      // Map questions to include options, correct answer, and user selected answer
-      const questionsPayload = exam.questions.map(q => ({
-        question_id: q.question_id,
-        question_text: q.question_text,
-        question_image_url: q.question_image_url || null,
-        question_image_id: q.question_image_id || null,
-        marks: q.marks,
-        correct_answer: q.correct_answer,
-        options: Object.entries(q.options).map(([letter, opt]) => ({
-          option_letter: letter,
-          option_text: opt.text,
-          option_image_url: opt.image_url || null,
-          option_image_id: opt.image_id || null,
-          is_correct: q.correct_answer === letter,  // marks which is correct
-          selected_by_user: answers[q.question_id] === letter // marks what user selected
-        }))
-      }));
+  try {
+    // Map questions to include options, correct answer, and user selected answer
+    const questionsPayload = exam.questions.map(q => ({
+      question_id: q.question_id,
+      question_text: q.question_text,
+      question_image_url: q.question_image_url || null,
+      question_image_id: q.question_image_id || null,
+      marks: q.marks || 1,
+      correct_answer: q.correct_answer,
+      options: Object.entries(q.options).map(([letter, opt]) => ({
+        option_letter: letter,
+        option_text: opt.text,
+        option_image_url: opt.image_url || null,
+        option_image_id: opt.image_id || null,
+        is_correct: q.correct_answer === letter,
+        selected_by_user: answers[q.question_id] === letter
+      }))
+    }));
 
-      const payload = {
-        exam_id: exam.exam_id,
-        exam_name: exam.exam_name,
-        exam_code: exam.exam_code,
-        subject: exam.subject,
-        chapter: exam.chapter,
-        class_name: exam.class_name,
-        total_marks: exam.total_marks,
-        total_time_minutes: exam.total_time_minutes,
-        time_taken_minutes: timeTaken,
-        // user_id: user.id,  // include examinee id
-        questions: questionsPayload
-      };
+    const payload = {
+      exam_id: exam.exam_id,
+      exam_name: exam.exam_name,
+      exam_code: exam.exam_code,
+      subject: exam.subject,
+      chapter: exam.chapter,
+      class_name: exam.class_name,
+      total_marks: exam.total_marks,
+      total_time_minutes: exam.total_time_minutes,
+      time_taken_minutes: timeTaken,
+      questions: questionsPayload
+    };
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/examinee/attempt-exam-result`,
-        payload,
-        {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
+    const response = await axios.post(
+      `${API_BASE_URL}/api/examinee/attempt-exam-result`,
+      payload,
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
-      );
-
-      if (response.data.status === 'success') {
-        alert("Exam submitted successfully!");
-        navigate("/examinee/attempt-exam/result", {
-          state: {
-            examResult: response.data,
-            examName: exam.exam_name
-          }
-        });
-      } else {
-        throw new Error(response.data.message || 'Failed to submit exam');
       }
-    } catch (error) {
-      console.error("Submission error:", error);
-      alert(`Error submitting exam: ${error.response?.data?.error || error.message}`);
-    } finally {
-      setIsSubmitting(false);
+    );
+
+    if (response.data.status === 'success') {
+      custom_alert.success("Exam submitted successfully!");
+      
+      // Navigate directly to result details with the complete response data
+      navigate("/examinee/attempt-exam/result-details", {
+        state: {
+          examResult: response.data.attempt_result,
+          examDetails: response.data.exam_details,
+          questions: response.data.questions,
+          timeTaken: timeTaken,
+        }
+      });
+    } else {
+      throw new Error(response.data.message || 'Failed to submit exam');
     }
-  };
+  } catch (error) {
+    console.error("Submission error:", error);
+    alert(`Error submitting exam: ${error.response?.data?.error || error.message}`);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
 
   const handleTimeUp = () => {
-    alert("Time is up! Submitting exam...");
+    custom_alert.warning("Time is up! Submitting exam...");
     handleSubmit();
   };
 
@@ -171,7 +176,7 @@ export default function RunningExam() {
               <button
                 onClick={() => setShowSubmitConfirm(true)}
                 disabled={isSubmitting}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 rounded-md shadow hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium flex items-center gap-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 rounded-md shadow hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium flex items-center gap-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -252,8 +257,8 @@ export default function RunningExam() {
 
       {/* Submit Confirmation Modal */}
       {showSubmitConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-white p-5 rounded-lg shadow-lg max-w-md w-full border border-gray-200">
+        <div className="fixed inset-0 flex  items-center justify-center z-50 p-4 bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-blue-100 p-5 rounded-lg shadow-lg max-w-md w-full border border-gray-200">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -268,7 +273,7 @@ export default function RunningExam() {
               <button
                 onClick={() => setShowSubmitConfirm(false)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors font-medium text-sm cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-400 transition-colors font-medium text-sm cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
