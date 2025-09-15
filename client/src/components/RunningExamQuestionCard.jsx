@@ -37,7 +37,7 @@ export default function RunningExamQuestionCard({ question, selected, onAnswer, 
           <img
             src={question.question_image_url}
             alt="Question"
-            className="max-w-full max-h-40 object-contain rounded"
+            className="max-w-full max-h-30 object-contain rounded"
           />
         </div>
       )}
@@ -86,7 +86,7 @@ export default function RunningExamQuestionCard({ question, selected, onAnswer, 
                       <img
                         src={opt.image_url}
                         alt={`Option ${letter}`}
-                        className="max-w-full max-h-25 object-contain rounded-md border border-gray-200"
+                        className="max-w-full max-h-20 object-contain rounded-md border border-gray-200"
                       />
                     </div>
                   )}
