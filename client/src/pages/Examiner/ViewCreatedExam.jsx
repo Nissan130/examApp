@@ -66,156 +66,46 @@ export default function ViewCreatedExam() {
   };
 
 
-// ✅ Styles for PDF rendering
 const styles = StyleSheet.create({
-  page: { 
-    padding: 20, 
-    fontFamily: "SolaimanLipi", 
-    fontSize: 12 
-  },
-  header: { 
-    fontSize: 18, 
-    fontWeight: "bold", 
-    textAlign: "center", 
-    marginBottom: 8 
-  },
-  subHeader: { 
-    fontSize: 12, 
-    fontWeight: "bold", 
-    textAlign: "center", 
-    marginBottom: 10 
-  },
-  details: { 
-    fontSize: 10, 
-    marginBottom: 10, 
-    flexDirection: "row", 
-    flexWrap: "wrap" 
-  },
-  detailItem: { 
-    marginRight: 15, 
-    marginBottom: 3 
-  },
-  questionContainer: {
-    marginBottom: 15,
-    padding: 5
-  },
-  questionText: { 
-    fontWeight: "bold", 
-    marginBottom: 4 
-  },
-  option: { 
-    flexDirection: "row", 
-    marginBottom: 4,
-    alignItems: "flex-start",
-    flexWrap: "wrap"   // ✅ allows text + image to wrap nicely
-  },
-  optionLetter: { 
-    fontWeight: "bold", 
-    marginRight: 4 
-  },
-  answer: { 
-    color: "green", 
-    marginTop: 4, 
-    fontWeight: "bold" 
-  },
-  // ✅ Question image (larger)
-  questionImage: { 
-    marginVertical: 6, 
-    width: 300,        
-    height: 150,       
-    objectFit: "contain", 
-    alignSelf: "center",
-    borderRadius: 5 
-  },
-  // ✅ Option image (smaller than question image)
-  optionImage: { 
-    marginVertical: 4, 
-    width: 120,        
-    height: 60, 
-    objectFit: "contain",
-    borderRadius: 4 
-  },
-  hr: { 
-    borderBottomWidth: 1, 
-    borderBottomColor: "#000", 
-    marginVertical: 8 
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 15,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 10
-  }
+  page: { padding: 20, fontFamily: "SolaimanLipi", fontSize: 12 },
+  header: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 8 },
+  subHeader: { fontSize: 12, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
+  details: { fontSize: 10, marginBottom: 10, flexDirection: "row", flexWrap: "wrap" },
+  detailItem: { marginRight: 15, marginBottom: 3 },
+  questionText: { fontWeight: "bold", marginBottom: 4 },
+  option: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
+  optionLetter: { fontWeight: "bold", marginRight: 4 },
+  answer: { color: "green", marginTop: 4, fontWeight: "bold" },
+
+  // Image handling
+  image: { marginVertical: 6, width: 250, height: 150, objectFit: "contain", borderRadius: 5 }, // fixed size
+  smallImage: { marginVertical: 4, width: 120, height: 80, objectFit: "contain", borderRadius: 3 },
+  hr: { borderBottomWidth: 1, borderBottomColor: "#000", marginVertical: 8 },
 });
 
-// ✅ Calculate the height of a question to determine if it fits on the current page
-const calculateQuestionHeight = (question) => {
-  let height = 40; // Base height for question text and options
-  
-  // Add height for question image
-  if (question?.question_image_url) height += 160;
-  
-  // Add height for option images (safe check for options)
-  if (question?.options) {
-    Object.values(question.options).forEach(option => {
-      if (option?.image_url) height += 70;
-    });
-  }
-  
-  return height;
-};
-
-// ✅ Organize questions into pages based on available space
-const organizeQuestions = (questions, maxPageHeight = 650) => {
+// Split into pages (define max questions per page)
+const getPages = (questions, questionsPerPage = 6) => {
   const pages = [];
-  let currentPage = [];
-  let currentHeight = 0;
-  let questionNumber = 1;
-
-  questions.forEach(question => {
-    const questionHeight = calculateQuestionHeight(question);
-    const numberedQuestion = { ...question, number: questionNumber++ };
-    
-    if (currentHeight + questionHeight <= maxPageHeight) {
-      // Add to current page
-      currentPage.push(numberedQuestion);
-      currentHeight += questionHeight;
-    } else {
-      // Current page is full, start a new page
-      pages.push(currentPage);
-      
-      // Reset for new page
-      currentPage = [numberedQuestion];
-      currentHeight = questionHeight;
-    }
-  });
-
-  // Add the last page if it has content
-  if (currentPage.length > 0) {
-    pages.push(currentPage);
+  for (let i = 0; i < questions.length; i += questionsPerPage) {
+    pages.push(questions.slice(i, i + questionsPerPage));
   }
-
   return pages;
 };
 
-// ✅ Export PDF
-const exportPDF = async (exam, includeAnswers = false) => {
+const exportPDF = async (includeAnswers = false) => {
   if (!exam) return;
-  
-  const organizedPages = organizeQuestions(exam.questions || []);
-  
+  const pages = getPages(exam.questions, 6); // 6 questions per page
+
   const ExamDocument = (
     <Document>
-      {organizedPages.map((pageQuestions, pageIndex) => (
+      {pages.map((pageQuestions, pageIndex) => (
         <Page key={pageIndex} style={styles.page}>
-          
-          {/* First Page Header */}
           {pageIndex === 0 && (
             <>
               <Text style={styles.header}>{exam.exam_name}</Text>
-              <Text style={styles.subHeader}>{exam.subject} - {exam.chapter}</Text>
+              <Text style={styles.subHeader}>
+                {exam.subject} - {exam.chapter}
+              </Text>
               <View style={styles.details}>
                 <Text style={styles.detailItem}>Class: {exam.class_name || "N/A"}</Text>
                 <Text style={styles.detailItem}>Marks: {exam.total_marks}</Text>
@@ -224,61 +114,48 @@ const exportPDF = async (exam, includeAnswers = false) => {
                   <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
                 )}
                 <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
-                <Text style={styles.detailItem}>Questions: {exam.questions?.length || 0}</Text>
+                <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
               </View>
-              {exam.description && <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>}
+              {exam.description && (
+                <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>
+              )}
               <View style={styles.hr} />
             </>
           )}
 
-          {/* Questions */}
-          <View>
-            {pageQuestions.map((q) => (
-              <View key={q.question_id || q.number} style={styles.questionContainer}>
-                {/* Question Text */}
-                <Text style={styles.questionText}>{q.number}. {q.question_text || ""}</Text>
-                
-                {/* Question Image */}
-                {q.question_image_url && (
-                  <Image 
-                    src={q.question_image_url} 
-                    style={styles.questionImage} 
-                  />
-                )}
+          {/* Single column questions */}
+          {pageQuestions.map((q, idx) => (
+            <View key={q.question_id} style={{ marginBottom: 15 }}>
+              <Text style={styles.questionText}>
+                {idx + 1 + pageIndex * 6}. {q.question_text}
+              </Text>
 
-                {/* Options (safe check) */}
-                {['A', 'B', 'C', 'D'].map((letter) => (
-                  <View key={letter} style={styles.option}>
-                    <Text style={styles.optionLetter}>{letter}.</Text>
-                    <Text>{q.options?.[letter]?.text || ""}</Text>
-                    
-                    {q.options?.[letter]?.image_url && (
-                      <Image 
-                        src={q.options[letter].image_url} 
-                        style={styles.optionImage} 
-                      />
-                    )}
-                  </View>
-                ))}
+              {/* Question image */}
+              {q.question_image_url && (
+                <Image src={q.question_image_url} style={styles.image} />
+              )}
 
-                {/* Answer (if enabled) */}
-                {includeAnswers && (
-                  <Text style={styles.answer}>✓ Answer: {q.correct_answer || ""}</Text>
-                )}
-              </View>
-            ))}
-          </View>
-          
-          {/* Page Number */}
-          <Text style={styles.pageNumber} fixed>
-            Page {pageIndex + 1} of {organizedPages.length}
-          </Text>
+              {/* Options */}
+              {["A", "B", "C", "D"].map((letter) => (
+                <View key={letter} style={styles.option}>
+                  <Text style={styles.optionLetter}>{letter}.</Text>
+                  <Text>{q.options[letter].text}</Text>
+                  {q.options[letter].image_url && (
+                    <Image src={q.options[letter].image_url} style={styles.smallImage} />
+                  )}
+                </View>
+              ))}
+
+              {includeAnswers && (
+                <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
+              )}
+            </View>
+          ))}
         </Page>
       ))}
     </Document>
   );
 
-  // ✅ Generate and download PDF
   const asPdf = pdf();
   asPdf.updateContainer(ExamDocument);
   const blob = await asPdf.toBlob();
@@ -290,7 +167,6 @@ const exportPDF = async (exam, includeAnswers = false) => {
     : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
   link.click();
 };
-
 
 
 
