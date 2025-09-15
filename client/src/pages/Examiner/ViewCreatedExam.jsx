@@ -65,7 +65,7 @@ export default function ViewCreatedExam() {
     }
   };
 
-
+// ✅ Styles for PDF rendering
 const styles = StyleSheet.create({
   page: { 
     padding: 20, 
@@ -104,8 +104,9 @@ const styles = StyleSheet.create({
   },
   option: { 
     flexDirection: "row", 
-    marginBottom: 2,
-    alignItems: "flex-start"
+    marginBottom: 4,
+    alignItems: "flex-start",
+    flexWrap: "wrap"   // ✅ allows text + image to wrap nicely
   },
   optionLetter: { 
     fontWeight: "bold", 
@@ -116,11 +117,22 @@ const styles = StyleSheet.create({
     marginTop: 4, 
     fontWeight: "bold" 
   },
-  image: { 
-    marginVertical: 5, 
-    maxWidth: "100%", 
-    maxHeight: 80,
+  // ✅ Question image (larger)
+  questionImage: { 
+    marginVertical: 6, 
+    width: 300,        // fixed width for consistency
+    height: 150,       // fixed height
+    objectFit: "contain", // ✅ keep aspect ratio
+    alignSelf: "center",
     borderRadius: 5 
+  },
+  // ✅ Option image (smaller than question image)
+  optionImage: { 
+    marginVertical: 4, 
+    width: 120,        // smaller size for options
+    height: 60, 
+    objectFit: "contain",
+    borderRadius: 4 
   },
   hr: { 
     borderBottomWidth: 1, 
@@ -137,22 +149,22 @@ const styles = StyleSheet.create({
   }
 });
 
-// Calculate the height of a question to determine if it fits on the current page
+// ✅ Calculate the height of a question to determine if it fits on the current page
 const calculateQuestionHeight = (question) => {
   let height = 40; // Base height for question text and options
   
   // Add height for question image
-  if (question.question_image_url) height += 90;
+  if (question.question_image_url) height += 160; // matches questionImage height
   
   // Add height for option images
   Object.values(question.options).forEach(option => {
-    if (option.image_url) height += 45;
+    if (option.image_url) height += 70; // matches optionImage height
   });
   
   return height;
 };
 
-// Organize questions into pages based on available space
+// ✅ Organize questions into pages based on available space
 const organizeQuestions = (questions, maxPageHeight = 650) => {
   const pages = [];
   let currentPage = [];
@@ -185,7 +197,8 @@ const organizeQuestions = (questions, maxPageHeight = 650) => {
   return pages;
 };
 
-const exportPDF = async (includeAnswers = false) => {
+// ✅ Export PDF
+const exportPDF = async (exam, includeAnswers = false) => {
   if (!exam) return;
   
   const organizedPages = organizeQuestions(exam.questions);
@@ -194,6 +207,8 @@ const exportPDF = async (includeAnswers = false) => {
     <Document>
       {organizedPages.map((pageQuestions, pageIndex) => (
         <Page key={pageIndex} style={styles.page}>
+          
+          {/* First Page Header */}
           {pageIndex === 0 && (
             <>
               <Text style={styles.header}>{exam.exam_name}</Text>
@@ -213,31 +228,38 @@ const exportPDF = async (includeAnswers = false) => {
             </>
           )}
 
-          {/* Single column layout */}
+          {/* Questions */}
           <View>
             {pageQuestions.map((q) => (
               <View key={q.question_id} style={styles.questionContainer}>
+                {/* Question Text */}
                 <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
+                
+                {/* Question Image */}
                 {q.question_image_url && (
                   <Image 
                     src={q.question_image_url} 
-                    style={styles.image} 
-                    resizeMode="contain" 
+                    style={styles.questionImage} 
                   />
                 )}
+
+                {/* Options */}
                 {['A', 'B', 'C', 'D'].map((letter) => (
                   <View key={letter} style={styles.option}>
                     <Text style={styles.optionLetter}>{letter}.</Text>
                     <Text>{q.options[letter].text}</Text>
+                    
+                    {/* Option Image */}
                     {q.options[letter].image_url && (
                       <Image 
                         src={q.options[letter].image_url} 
-                        style={styles.image} 
-                        resizeMode="contain" 
+                        style={styles.optionImage} 
                       />
                     )}
                   </View>
                 ))}
+
+                {/* Answer (if enabled) */}
                 {includeAnswers && (
                   <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
                 )}
@@ -245,7 +267,7 @@ const exportPDF = async (includeAnswers = false) => {
             ))}
           </View>
           
-          {/* Page number */}
+          {/* Page Number */}
           <Text style={styles.pageNumber} fixed>
             Page {pageIndex + 1} of {organizedPages.length}
           </Text>
@@ -254,6 +276,7 @@ const exportPDF = async (includeAnswers = false) => {
     </Document>
   );
 
+  // ✅ Generate and download PDF
   const asPdf = pdf();
   asPdf.updateContainer(ExamDocument);
   const blob = await asPdf.toBlob();
@@ -265,6 +288,7 @@ const exportPDF = async (includeAnswers = false) => {
     : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
   link.click();
 };
+
 
 
   if (loading) {
