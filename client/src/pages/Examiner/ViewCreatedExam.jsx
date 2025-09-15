@@ -67,51 +67,154 @@ export default function ViewCreatedExam() {
 
 
 const styles = StyleSheet.create({
-  page: { padding: 20, fontFamily: "SolaimanLipi", fontSize: 12 },
-  header: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 8 },
-  subHeader: { fontSize: 12, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
-  details: { fontSize: 10, marginBottom: 10, flexDirection: "row", flexWrap: "wrap" },
-  detailItem: { marginRight: 15, marginBottom: 3 },
-  questionRow: { flexDirection: "row", justifyContent: "space-between" },
-  questionColumn: { width: "48%" },
-  questionText: { fontWeight: "bold", marginBottom: 4 },
-  option: { flexDirection: "row", marginBottom: 2 },
-  optionLetter: { fontWeight: "bold", marginRight: 4 },
-  answer: { color: "green", marginTop: 4, fontWeight: "bold" },
-  image: { marginVertical: 5, maxWidth: "100%", height: "auto", borderRadius: 5 },
-  hr: { borderBottomWidth: 1, borderBottomColor: "#000", marginVertical: 8 },
+  page: { 
+    padding: 20, 
+    fontFamily: "SolaimanLipi", 
+    fontSize: 12 
+  },
+  header: { 
+    fontSize: 18, 
+    fontWeight: "bold", 
+    textAlign: "center", 
+    marginBottom: 8 
+  },
+  subHeader: { 
+    fontSize: 12, 
+    fontWeight: "bold", 
+    textAlign: "center", 
+    marginBottom: 10 
+  },
+  details: { 
+    fontSize: 10, 
+    marginBottom: 10, 
+    flexDirection: "row", 
+    flexWrap: "wrap" 
+  },
+  detailItem: { 
+    marginRight: 15, 
+    marginBottom: 3 
+  },
+  questionRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between",
+    marginTop: 10
+  },
+  questionColumn: { 
+    width: "48%",
+    flexDirection: "column"
+  },
+  questionContainer: {
+    marginBottom: 15,
+    padding: 5
+  },
+  questionText: { 
+    fontWeight: "bold", 
+    marginBottom: 4 
+  },
+  option: { 
+    flexDirection: "row", 
+    marginBottom: 2,
+    alignItems: "flex-start"
+  },
+  optionLetter: { 
+    fontWeight: "bold", 
+    marginRight: 4 
+  },
+  answer: { 
+    color: "green", 
+    marginTop: 4, 
+    fontWeight: "bold" 
+  },
+  image: { 
+    marginVertical: 5, 
+    maxWidth: "100%", 
+    maxHeight: 80,
+    borderRadius: 5 
+  },
+  hr: { 
+    borderBottomWidth: 1, 
+    borderBottomColor: "#000", 
+    marginVertical: 8 
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 15,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 10
+  }
 });
 
-// Split questions for two-column vertical layout
-const getColumns = (questions) => {
-  const mid = Math.ceil(questions.length / 2);
-  const col1 = questions.slice(0, mid);
-  const col2 = questions.slice(mid);
-  return [col1, col2];
+// Calculate the height of a question to determine if it fits on the current page
+const calculateQuestionHeight = (question) => {
+  let height = 40; // Base height for question text and options
+  
+  // Add height for question image
+  if (question.question_image_url) height += 90;
+  
+  // Add height for option images
+  Object.values(question.options).forEach(option => {
+    if (option.image_url) height += 45;
+  });
+  
+  return height;
 };
 
-// Split into pages (optional: define max rows per page)
-const getPages = (questions, rowsPerPage = 6) => {
+// Organize questions into pages and columns based on available space
+const organizeQuestions = (questions, maxPageHeight = 650) => {
   const pages = [];
-  for (let i = 0; i < questions.length; i += rowsPerPage * 2) {
-    pages.push(questions.slice(i, i + rowsPerPage * 2));
+  let currentPage = [];
+  let currentColumn1 = [];
+  let currentColumn2 = [];
+  let currentHeight1 = 0;
+  let currentHeight2 = 0;
+  let questionNumber = 1;
+
+  questions.forEach(question => {
+    const questionHeight = calculateQuestionHeight(question);
+    const numberedQuestion = { ...question, number: questionNumber++ };
+    
+    // Try to place in the column with less content
+    if (currentHeight1 <= currentHeight2 && currentHeight1 + questionHeight <= maxPageHeight) {
+      currentColumn1.push(numberedQuestion);
+      currentHeight1 += questionHeight;
+    } else if (currentHeight2 + questionHeight <= maxPageHeight) {
+      currentColumn2.push(numberedQuestion);
+      currentHeight2 += questionHeight;
+    } else {
+      // Current page is full, start a new page
+      currentPage.push([currentColumn1, currentColumn2]);
+      pages.push(currentPage);
+      
+      // Reset for new page
+      currentPage = [];
+      currentColumn1 = [numberedQuestion];
+      currentColumn2 = [];
+      currentHeight1 = questionHeight;
+      currentHeight2 = 0;
+    }
+  });
+
+  // Add the last page if it has content
+  if (currentColumn1.length > 0 || currentColumn2.length > 0) {
+    currentPage.push([currentColumn1, currentColumn2]);
+    pages.push(currentPage);
   }
+
   return pages;
 };
 
-
-
-  const exportPDF = async (includeAnswers = false) => {
-    if (!exam) return;
-    const pages = getPages(exam.questions, 3); // 3 rows per column per page
-
-
-    const ExamDocument = (
-
-<Document>
-      {pages.map((pageQuestions, pageIndex) => {
-        const [col1, col2] = getColumns(pageQuestions);
-
+const exportPDF = async (includeAnswers = false) => {
+  if (!exam) return;
+  
+  const organizedPages = organizeQuestions(exam.questions);
+  
+  const ExamDocument = (
+    <Document>
+      {organizedPages.map((page, pageIndex) => {
+        const [col1, col2] = page[0]; // Each page contains one array with two columns
+        
         return (
           <Page key={pageIndex} style={styles.page}>
             {pageIndex === 0 && (
@@ -134,58 +237,92 @@ const getPages = (questions, rowsPerPage = 6) => {
             )}
 
             <View style={styles.questionRow}>
+              {/* First Column */}
               <View style={styles.questionColumn}>
-                {col1.map((q, idx) => (
-                  <View key={q.question_id} style={{ marginBottom: 15 }}>
-                    <Text style={styles.questionText}>{idx + 1 + pageIndex * col1.length * 2}. {q.question_text}</Text>
-                    {q.question_image_url && <Image src={q.question_image_url} style={styles.image} resizeMode="contain" />}
+                {col1.map((q) => (
+                  <View key={q.question_id} style={styles.questionContainer}>
+                    <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
+                    {q.question_image_url && (
+                      <Image 
+                        src={q.question_image_url} 
+                        style={styles.image} 
+                        resizeMode="contain" 
+                      />
+                    )}
                     {['A', 'B', 'C', 'D'].map((letter) => (
                       <View key={letter} style={styles.option}>
                         <Text style={styles.optionLetter}>{letter}.</Text>
                         <Text>{q.options[letter].text}</Text>
-                        {q.options[letter].image_url && <Image src={q.options[letter].image_url} style={styles.image} resizeMode="contain" />}
+                        {q.options[letter].image_url && (
+                          <Image 
+                            src={q.options[letter].image_url} 
+                            style={styles.image} 
+                            resizeMode="contain" 
+                          />
+                        )}
                       </View>
                     ))}
-                    {includeAnswers && <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>}
+                    {includeAnswers && (
+                      <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
+                    )}
                   </View>
                 ))}
               </View>
 
+              {/* Second Column */}
               <View style={styles.questionColumn}>
-                {col2.map((q, idx) => (
-                  <View key={q.question_id} style={{ marginBottom: 15 }}>
-                    <Text style={styles.questionText}>{idx + 1 + col1.length + pageIndex * col1.length * 2}. {q.question_text}</Text>
-                    {q.question_image_url && <Image src={q.question_image_url} style={styles.image} resizeMode="contain" />}
+                {col2.map((q) => (
+                  <View key={q.question_id} style={styles.questionContainer}>
+                    <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
+                    {q.question_image_url && (
+                      <Image 
+                        src={q.question_image_url} 
+                        style={styles.image} 
+                        resizeMode="contain" 
+                      />
+                    )}
                     {['A', 'B', 'C', 'D'].map((letter) => (
                       <View key={letter} style={styles.option}>
                         <Text style={styles.optionLetter}>{letter}.</Text>
                         <Text>{q.options[letter].text}</Text>
-                        {q.options[letter].image_url && <Image src={q.options[letter].image_url} style={{...styles.image, height:40}} resizeMode="contain" />}
+                        {q.options[letter].image_url && (
+                          <Image 
+                            src={q.options[letter].image_url} 
+                            style={styles.image} 
+                            resizeMode="contain" 
+                          />
+                        )}
                       </View>
                     ))}
-                    {includeAnswers && <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>}
+                    {includeAnswers && (
+                      <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
+                    )}
                   </View>
                 ))}
               </View>
             </View>
+            
+            {/* Page number */}
+            <Text style={styles.pageNumber} fixed>
+              Page {pageIndex + 1} of {organizedPages.length}
+            </Text>
           </Page>
         );
       })}
     </Document>
+  );
 
-    );
+  const asPdf = pdf();
+  asPdf.updateContainer(ExamDocument);
+  const blob = await asPdf.toBlob();
 
-    const asPdf = pdf();
-    asPdf.updateContainer(ExamDocument);
-    const blob = await asPdf.toBlob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = includeAnswers
-      ? `${exam.exam_name.replace(/\s+/g, "_")}_With_Answers.pdf`
-      : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
-    link.click();
-  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = includeAnswers
+    ? `${exam.exam_name.replace(/\s+/g, "_")}_With_Answers.pdf`
+    : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
+  link.click();
+};
 
 
   if (loading) {
