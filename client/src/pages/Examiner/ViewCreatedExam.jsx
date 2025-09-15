@@ -65,6 +65,7 @@ export default function ViewCreatedExam() {
     }
   };
 
+
 // ✅ Styles for PDF rendering
 const styles = StyleSheet.create({
   page: { 
@@ -120,16 +121,16 @@ const styles = StyleSheet.create({
   // ✅ Question image (larger)
   questionImage: { 
     marginVertical: 6, 
-    width: 300,        // fixed width for consistency
-    height: 150,       // fixed height
-    objectFit: "contain", // ✅ keep aspect ratio
+    width: 300,        
+    height: 150,       
+    objectFit: "contain", 
     alignSelf: "center",
     borderRadius: 5 
   },
   // ✅ Option image (smaller than question image)
   optionImage: { 
     marginVertical: 4, 
-    width: 120,        // smaller size for options
+    width: 120,        
     height: 60, 
     objectFit: "contain",
     borderRadius: 4 
@@ -154,12 +155,14 @@ const calculateQuestionHeight = (question) => {
   let height = 40; // Base height for question text and options
   
   // Add height for question image
-  if (question.question_image_url) height += 160; // matches questionImage height
+  if (question?.question_image_url) height += 160;
   
-  // Add height for option images
-  Object.values(question.options).forEach(option => {
-    if (option.image_url) height += 70; // matches optionImage height
-  });
+  // Add height for option images (safe check for options)
+  if (question?.options) {
+    Object.values(question.options).forEach(option => {
+      if (option?.image_url) height += 70;
+    });
+  }
   
   return height;
 };
@@ -201,7 +204,7 @@ const organizeQuestions = (questions, maxPageHeight = 650) => {
 const exportPDF = async (exam, includeAnswers = false) => {
   if (!exam) return;
   
-  const organizedPages = organizeQuestions(exam.questions);
+  const organizedPages = organizeQuestions(exam.questions || []);
   
   const ExamDocument = (
     <Document>
@@ -221,7 +224,7 @@ const exportPDF = async (exam, includeAnswers = false) => {
                   <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
                 )}
                 <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
-                <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
+                <Text style={styles.detailItem}>Questions: {exam.questions?.length || 0}</Text>
               </View>
               {exam.description && <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>}
               <View style={styles.hr} />
@@ -231,9 +234,9 @@ const exportPDF = async (exam, includeAnswers = false) => {
           {/* Questions */}
           <View>
             {pageQuestions.map((q) => (
-              <View key={q.question_id} style={styles.questionContainer}>
+              <View key={q.question_id || q.number} style={styles.questionContainer}>
                 {/* Question Text */}
-                <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
+                <Text style={styles.questionText}>{q.number}. {q.question_text || ""}</Text>
                 
                 {/* Question Image */}
                 {q.question_image_url && (
@@ -243,14 +246,13 @@ const exportPDF = async (exam, includeAnswers = false) => {
                   />
                 )}
 
-                {/* Options */}
+                {/* Options (safe check) */}
                 {['A', 'B', 'C', 'D'].map((letter) => (
                   <View key={letter} style={styles.option}>
                     <Text style={styles.optionLetter}>{letter}.</Text>
-                    <Text>{q.options[letter].text}</Text>
+                    <Text>{q.options?.[letter]?.text || ""}</Text>
                     
-                    {/* Option Image */}
-                    {q.options[letter].image_url && (
+                    {q.options?.[letter]?.image_url && (
                       <Image 
                         src={q.options[letter].image_url} 
                         style={styles.optionImage} 
@@ -261,7 +263,7 @@ const exportPDF = async (exam, includeAnswers = false) => {
 
                 {/* Answer (if enabled) */}
                 {includeAnswers && (
-                  <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
+                  <Text style={styles.answer}>✓ Answer: {q.correct_answer || ""}</Text>
                 )}
               </View>
             ))}
@@ -288,6 +290,7 @@ const exportPDF = async (exam, includeAnswers = false) => {
     : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
   link.click();
 };
+
 
 
 
