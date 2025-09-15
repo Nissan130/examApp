@@ -94,15 +94,6 @@ const styles = StyleSheet.create({
     marginRight: 15, 
     marginBottom: 3 
   },
-  questionRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-between",
-    marginTop: 10
-  },
-  questionColumn: { 
-    width: "48%",
-    flexDirection: "column"
-  },
   questionContainer: {
     marginBottom: 15,
     padding: 5
@@ -161,44 +152,33 @@ const calculateQuestionHeight = (question) => {
   return height;
 };
 
-// Organize questions into pages and columns based on available space
+// Organize questions into pages based on available space
 const organizeQuestions = (questions, maxPageHeight = 650) => {
   const pages = [];
   let currentPage = [];
-  let currentColumn1 = [];
-  let currentColumn2 = [];
-  let currentHeight1 = 0;
-  let currentHeight2 = 0;
+  let currentHeight = 0;
   let questionNumber = 1;
 
   questions.forEach(question => {
     const questionHeight = calculateQuestionHeight(question);
     const numberedQuestion = { ...question, number: questionNumber++ };
     
-    // Try to place in the column with less content
-    if (currentHeight1 <= currentHeight2 && currentHeight1 + questionHeight <= maxPageHeight) {
-      currentColumn1.push(numberedQuestion);
-      currentHeight1 += questionHeight;
-    } else if (currentHeight2 + questionHeight <= maxPageHeight) {
-      currentColumn2.push(numberedQuestion);
-      currentHeight2 += questionHeight;
+    if (currentHeight + questionHeight <= maxPageHeight) {
+      // Add to current page
+      currentPage.push(numberedQuestion);
+      currentHeight += questionHeight;
     } else {
       // Current page is full, start a new page
-      currentPage.push([currentColumn1, currentColumn2]);
       pages.push(currentPage);
       
       // Reset for new page
-      currentPage = [];
-      currentColumn1 = [numberedQuestion];
-      currentColumn2 = [];
-      currentHeight1 = questionHeight;
-      currentHeight2 = 0;
+      currentPage = [numberedQuestion];
+      currentHeight = questionHeight;
     }
   });
 
   // Add the last page if it has content
-  if (currentColumn1.length > 0 || currentColumn2.length > 0) {
-    currentPage.push([currentColumn1, currentColumn2]);
+  if (currentPage.length > 0) {
     pages.push(currentPage);
   }
 
@@ -212,103 +192,65 @@ const exportPDF = async (includeAnswers = false) => {
   
   const ExamDocument = (
     <Document>
-      {organizedPages.map((page, pageIndex) => {
-        const [col1, col2] = page[0]; // Each page contains one array with two columns
-        
-        return (
-          <Page key={pageIndex} style={styles.page}>
-            {pageIndex === 0 && (
-              <>
-                <Text style={styles.header}>{exam.exam_name}</Text>
-                <Text style={styles.subHeader}>{exam.subject} - {exam.chapter}</Text>
-                <View style={styles.details}>
-                  <Text style={styles.detailItem}>Class: {exam.class_name || "N/A"}</Text>
-                  <Text style={styles.detailItem}>Marks: {exam.total_marks}</Text>
-                  <Text style={styles.detailItem}>Time: {exam.total_time_minutes} min</Text>
-                  {exam.negative_marks_value > 0 && (
-                    <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
-                  )}
-                  <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
-                  <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
-                </View>
-                {exam.description && <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>}
-                <View style={styles.hr} />
-              </>
-            )}
+      {organizedPages.map((pageQuestions, pageIndex) => (
+        <Page key={pageIndex} style={styles.page}>
+          {pageIndex === 0 && (
+            <>
+              <Text style={styles.header}>{exam.exam_name}</Text>
+              <Text style={styles.subHeader}>{exam.subject} - {exam.chapter}</Text>
+              <View style={styles.details}>
+                <Text style={styles.detailItem}>Class: {exam.class_name || "N/A"}</Text>
+                <Text style={styles.detailItem}>Marks: {exam.total_marks}</Text>
+                <Text style={styles.detailItem}>Time: {exam.total_time_minutes} min</Text>
+                {exam.negative_marks_value > 0 && (
+                  <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
+                )}
+                <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
+                <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
+              </View>
+              {exam.description && <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>}
+              <View style={styles.hr} />
+            </>
+          )}
 
-            <View style={styles.questionRow}>
-              {/* First Column */}
-              <View style={styles.questionColumn}>
-                {col1.map((q) => (
-                  <View key={q.question_id} style={styles.questionContainer}>
-                    <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
-                    {q.question_image_url && (
+          {/* Single column layout */}
+          <View>
+            {pageQuestions.map((q) => (
+              <View key={q.question_id} style={styles.questionContainer}>
+                <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
+                {q.question_image_url && (
+                  <Image 
+                    src={q.question_image_url} 
+                    style={styles.image} 
+                    resizeMode="contain" 
+                  />
+                )}
+                {['A', 'B', 'C', 'D'].map((letter) => (
+                  <View key={letter} style={styles.option}>
+                    <Text style={styles.optionLetter}>{letter}.</Text>
+                    <Text>{q.options[letter].text}</Text>
+                    {q.options[letter].image_url && (
                       <Image 
-                        src={q.question_image_url} 
+                        src={q.options[letter].image_url} 
                         style={styles.image} 
                         resizeMode="contain" 
                       />
                     )}
-                    {['A', 'B', 'C', 'D'].map((letter) => (
-                      <View key={letter} style={styles.option}>
-                        <Text style={styles.optionLetter}>{letter}.</Text>
-                        <Text>{q.options[letter].text}</Text>
-                        {q.options[letter].image_url && (
-                          <Image 
-                            src={q.options[letter].image_url} 
-                            style={styles.image} 
-                            resizeMode="contain" 
-                          />
-                        )}
-                      </View>
-                    ))}
-                    {includeAnswers && (
-                      <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
-                    )}
                   </View>
                 ))}
+                {includeAnswers && (
+                  <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
+                )}
               </View>
-
-              {/* Second Column */}
-              <View style={styles.questionColumn}>
-                {col2.map((q) => (
-                  <View key={q.question_id} style={styles.questionContainer}>
-                    <Text style={styles.questionText}>{q.number}. {q.question_text}</Text>
-                    {q.question_image_url && (
-                      <Image 
-                        src={q.question_image_url} 
-                        style={styles.image} 
-                        resizeMode="contain" 
-                      />
-                    )}
-                    {['A', 'B', 'C', 'D'].map((letter) => (
-                      <View key={letter} style={styles.option}>
-                        <Text style={styles.optionLetter}>{letter}.</Text>
-                        <Text>{q.options[letter].text}</Text>
-                        {q.options[letter].image_url && (
-                          <Image 
-                            src={q.options[letter].image_url} 
-                            style={styles.image} 
-                            resizeMode="contain" 
-                          />
-                        )}
-                      </View>
-                    ))}
-                    {includeAnswers && (
-                      <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </View>
-            
-            {/* Page number */}
-            <Text style={styles.pageNumber} fixed>
-              Page {pageIndex + 1} of {organizedPages.length}
-            </Text>
-          </Page>
-        );
-      })}
+            ))}
+          </View>
+          
+          {/* Page number */}
+          <Text style={styles.pageNumber} fixed>
+            Page {pageIndex + 1} of {organizedPages.length}
+          </Text>
+        </Page>
+      ))}
     </Document>
   );
 
