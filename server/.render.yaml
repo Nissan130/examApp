@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: exam-app-api
+    name: exam-app-server
     env: python
     plan: free
     buildCommand: "./build.sh"
