@@ -159,7 +159,7 @@ export default function ExamAttemptResultDetails() {
     {/* Percentage Score */}
     <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200 flex-1 text-center">
       <div className="text-3xl font-bold text-purple-700 mb-1">
-        {score.toFixed(1)}%
+        {score}%
       </div>
       <div className="text-sm text-purple-800 font-medium">Score Percentage</div>
     </div>
