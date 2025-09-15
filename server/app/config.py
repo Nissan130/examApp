@@ -14,3 +14,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
     DEBUG = os.getenv("FLASK_DEBUG", False)
+    
+    # Add CORS settings based on environment
+    ENV = os.getenv("FLASK_ENV", "production")

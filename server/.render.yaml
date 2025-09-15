@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: exam_app_server
+    name: exam-app-server
     env: python
     plan: free
     buildCommand: "./build.sh"
@@ -12,3 +12,5 @@ services:
         generateValue: true
       - key: FLASK_DEBUG
         value: 0
+      - key: FLASK_ENV
+        value: production
