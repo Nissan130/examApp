@@ -14,6 +14,7 @@ export default function ExamAttemptResultDetails() {
   
   // Calculate score and counts if not provided directly
   const score = examResult?.score || (examResult?.correct_answers / questions?.length * 100) || 0;
+  const score_percentage = (score/questions?.length)*100;
   const correctAnswers = examResult?.correct_answers || (questions?.filter(q => q.is_correct).length) || 0;
   const wrongAnswers = examResult?.wrong_answers || (questions?.filter(q => !q.is_correct && q.selected_answer).length) || 0;
   const unansweredQuestions = examResult?.unanswered_questions || (questions?.filter(q => !q.selected_answer).length) || 0;
@@ -159,7 +160,7 @@ export default function ExamAttemptResultDetails() {
     {/* Percentage Score */}
     <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200 flex-1 text-center">
       <div className="text-3xl font-bold text-purple-700 mb-1">
-        {score}%
+        {score_percentage}%
       </div>
       <div className="text-sm text-purple-800 font-medium">Score Percentage</div>
     </div>
