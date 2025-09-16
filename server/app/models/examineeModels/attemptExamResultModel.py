@@ -28,6 +28,7 @@ class ExamineeAttemptExamResult(BaseModel):
     wrong_answers = db.Column(db.Integer, nullable=False)
     unanswered_questions = db.Column(db.Integer, nullable=False)
     time_taken_minutes = db.Column(db.Float, nullable=False)
+    negative_marking_value = db.Column(db.Float)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

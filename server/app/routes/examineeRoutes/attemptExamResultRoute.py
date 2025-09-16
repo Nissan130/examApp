@@ -24,6 +24,7 @@ def examineeAttempExamResult(user):
     chapter = data.get('chapter')
     class_name = data.get('class_name')
     total_marks = data.get('total_marks')
+    negative_marking_value = data.get('negative_marking_value')
     total_time_minutes = data.get('total_time_minutes')
 
     if not exam_id:
@@ -43,6 +44,7 @@ def examineeAttempExamResult(user):
         correct_answers=0,
         wrong_answers=0,
         unanswered_questions=total_questions,
+        negative_marking_value = negative_marking_value,
         time_taken_minutes=time_taken
     )
     db.session.add(attempt_result)
@@ -166,6 +168,8 @@ def examineeAttempExamResult(user):
             'correct_answers': correct_count,
             'wrong_answers': wrong_count,
             'unanswered_questions': unanswered_count,
+            'negative_marking_value':negative_marking_value,
+
             'time_taken_minutes': time_taken,
             'created_at': attempt_result.created_at.isoformat() if attempt_result.created_at else None
         },

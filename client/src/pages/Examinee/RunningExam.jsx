@@ -90,6 +90,7 @@ const handleSubmit = async () => {
       chapter: exam.chapter,
       class_name: exam.class_name,
       total_marks: exam.total_marks,
+      negative_marking_value: exam.negative_marking_value,
       total_time_minutes: exam.total_time_minutes,
       time_taken_minutes: timeTaken,
       questions: questionsPayload
