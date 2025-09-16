@@ -13,16 +13,11 @@ export default function ExamAttemptResultDetails() {
   const attemptId = examResult?.attempt_id;
   
   // Calculate score and counts if not provided directly
-const negativeMarkingValue = examDetails?.negative_marking_value 
+  const score = examResult?.score 
+  const score_percentage = Math.round((score / questions?.length) * 100);
   const correctAnswers = examResult?.correct_answers || (questions?.filter(q => q.is_correct).length) || 0;
   const wrongAnswers = examResult?.wrong_answers || (questions?.filter(q => !q.is_correct && q.selected_answer).length) || 0;
   const unansweredQuestions = examResult?.unanswered_questions || (questions?.filter(q => !q.selected_answer).length) || 0;
-
-  // Calculate score with negative marking
-const rawScore = correctAnswers - (wrongAnswers * negativeMarkingValue);
-const score = Math.max(0, rawScore); 
-// Calculate percentage and round it
-const score_percentage = Math.round((score / questions?.length) * 100) || 0;
 
   if (!questions || questions.length === 0) {
     return (
