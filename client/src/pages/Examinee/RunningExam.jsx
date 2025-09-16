@@ -60,6 +60,10 @@ export default function RunningExam() {
     setAnswers(newAnswers);
   };
 
+  const negative_marks = exam.negative_marking_value
+  console.log("negative_mark:", negative_marks);
+  
+
  // In your RunningExam component's handleSubmit function
 const handleSubmit = async () => {
   setIsSubmitting(true);
@@ -91,7 +95,7 @@ const handleSubmit = async () => {
       chapter: exam.chapter,
       class_name: exam.class_name,
       total_marks: exam.total_marks,
-      negative_marking_value: exam.negative_marking_value,
+      negative_marking_value: negative_marks,
       total_time_minutes: exam.total_time_minutes,
       time_taken_minutes: timeTaken,
       questions: questionsPayload
