@@ -26,7 +26,8 @@ export default function RunningExam() {
   const [timeTaken, setTimeTaken] = useState(0);
   const questions = exam?.questions || [];
 
-
+  console.log("exam",exam);
+  
 
   if (!exam) {
     return (
