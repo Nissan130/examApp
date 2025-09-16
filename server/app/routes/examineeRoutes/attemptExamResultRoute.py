@@ -31,6 +31,8 @@ def examineeAttempExamResult(user):
         return jsonify({'error': 'Exam ID is required'}), 400
 
     total_questions = len(questions_payload)
+    total_score = 0
+
     correct_count = 0
     wrong_count = 0
     unanswered_count = 0
@@ -148,7 +150,8 @@ def examineeAttempExamResult(user):
     attempt_result.correct_answers = correct_count
     attempt_result.wrong_answers = wrong_count
     attempt_result.unanswered_questions = unanswered_count
-    attempt_result.score = correct_count -wrong_count*negative_marking_value
+    total_score = correct_count -wrong_count*negative_marking_value
+    attempt_result.score = total_score
 
     try:
         db.session.commit()
@@ -163,7 +166,7 @@ def examineeAttempExamResult(user):
         'attempt_result': {
             'examinee_id': str(examinee_id),
             'exam_id': exam_id,
-            'score': correct_count,
+            'score': total_score,
             'total_questions': total_questions,
             'correct_answers': correct_count,
             'wrong_answers': wrong_count,
