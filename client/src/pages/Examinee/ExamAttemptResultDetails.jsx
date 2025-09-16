@@ -5,7 +5,7 @@ export default function ExamAttemptResultDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const { examResult, examDetails, questions, timeTaken } = location.state || {};
-  const [activeTab, setActiveTab] = useState("all"); // "all", "correct", "incorrect", "unanswered"
+  const [activeTab, setActiveTab] = useState("all");
 
   // Use examDetails if available, otherwise fall back to examResult for backward compatibility
   const examName = examDetails?.exam_name || examResult?.exam_name;
@@ -14,7 +14,7 @@ export default function ExamAttemptResultDetails() {
   
   // Calculate score and counts if not provided directly
   const score = examResult?.score 
-  const score_percentage = Math.round((score / questions?.length) * 100);
+  const score_percentage = Math.round((score / questions?.length) * 100)
   const correctAnswers = examResult?.correct_answers || (questions?.filter(q => q.is_correct).length) || 0;
   const wrongAnswers = examResult?.wrong_answers || (questions?.filter(q => !q.is_correct && q.selected_answer).length) || 0;
   const unansweredQuestions = examResult?.unanswered_questions || (questions?.filter(q => !q.selected_answer).length) || 0;
