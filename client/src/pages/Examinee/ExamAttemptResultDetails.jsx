@@ -14,7 +14,7 @@ export default function ExamAttemptResultDetails() {
   
   // Calculate score and counts if not provided directly
   const score = examResult?.score 
-  const score_percentage = Math.round((score / questions?.length) * 100)
+  const score_percentage = Math.round(((score / questions?.length) * 100),2)
   const correctAnswers = examResult?.correct_answers || (questions?.filter(q => q.is_correct).length) || 0;
   const wrongAnswers = examResult?.wrong_answers || (questions?.filter(q => !q.is_correct && q.selected_answer).length) || 0;
   const unansweredQuestions = examResult?.unanswered_questions || (questions?.filter(q => !q.selected_answer).length) || 0;
@@ -152,7 +152,7 @@ export default function ExamAttemptResultDetails() {
     {/* Marks Obtained */}
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 flex-1 text-center">
       <div className="text-3xl font-bold text-blue-700 mb-1">
-        {correctAnswers}<span className="text-lg">/{questions.length}</span>
+        {score}<span className="text-lg">/{questions.length}</span>
       </div>
       <div className="text-sm text-blue-800 font-medium">Marks Obtained</div>
     </div>
