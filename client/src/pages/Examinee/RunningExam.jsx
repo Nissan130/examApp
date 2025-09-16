@@ -60,7 +60,7 @@ export default function RunningExam() {
     setAnswers(newAnswers);
   };
 
-  const negative_marks = exam.negative_marking_value
+  const negative_marks = exam.negative_marks_value
   console.log("negative_mark:", negative_marks);
   
 
