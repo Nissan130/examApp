@@ -95,6 +95,8 @@ const handleSubmit = async () => {
       time_taken_minutes: timeTaken,
       questions: questionsPayload
     };
+    console.log("payload",payload);
+    
 
     const response = await axios.post(
       `${API_BASE_URL}/api/examinee/attempt-exam-result`,
