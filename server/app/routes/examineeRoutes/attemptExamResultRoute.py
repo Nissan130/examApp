@@ -148,7 +148,7 @@ def examineeAttempExamResult(user):
     attempt_result.correct_answers = correct_count
     attempt_result.wrong_answers = wrong_count
     attempt_result.unanswered_questions = unanswered_count
-    attempt_result.score = correct_count
+    attempt_result.score = correct_count -wrong_count*negative_marking_value
 
     try:
         db.session.commit()
