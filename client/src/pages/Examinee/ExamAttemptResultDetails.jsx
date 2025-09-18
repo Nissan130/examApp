@@ -1,11 +1,21 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function ExamAttemptResultDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const { examResult, examDetails, questions, timeTaken } = location.state || {};
   const [activeTab, setActiveTab] = useState("all");
+
+  // Add this useEffect to scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Add this useEffect to scroll to top when location changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
 
   // Use examDetails if available, otherwise fall back to examResult for backward compatibility
   const examName = examDetails?.exam_name || examResult?.exam_name;
