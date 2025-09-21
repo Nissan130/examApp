@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { GlobalContext } from "../../context/GlobalContext";
@@ -15,13 +14,15 @@ export default function ExamineeAttemptExamLeaderboard() {
   const [error, setError] = useState(null);
 
   console.log(exam_id);
+  console.log("exam details: ", examDetails);
+  
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       setIsLoading(true);
       try {
 
-        const leaderboardResponse = await axios.get(
+        const response = await axios.get(
           `${API_BASE_URL}/api/examinee/attempt-exam/${exam_id}/leaderboard`,
           {
             headers: {
@@ -31,20 +32,16 @@ export default function ExamineeAttemptExamLeaderboard() {
         );
 
         // Handle different response structures
-        const responseData = leaderboardResponse.data;
-        if (responseData.leaderboard) {
-          setLeaderboardData(responseData.leaderboard);
-        } else if (Array.isArray(responseData)) {
-          setLeaderboardData(responseData);
-        } else {
+        if (response.data.status === "success") {
+          setLeaderboardData(response.data.leaderboard);
+          setExamDetails(response.data.exam);
+        } 
+        else {
           setLeaderboardData([]);
         }
       } catch (err) {
         console.error("Error fetching leaderboard data:", err);
         setError("Failed to load leaderboard data. Please try again.");
-
-        // Fallback to mock data if API fails
-        setLeaderboardData(generateMockLeaderboardData());
       } finally {
         setIsLoading(false);
       }
@@ -94,6 +91,15 @@ export default function ExamineeAttemptExamLeaderboard() {
       case 3: return "🥉";
       default: return rank;
     }
+  };
+
+  // Calculate lowest marks
+  const calculateLowestMarks = () => {
+    if (leaderboardData.length === 0) return 0;
+    
+    // Sort by score in ascending order to get the lowest score
+    const sortedByScore = [...leaderboardData].sort((a, b) => a.score - b.score);
+    return sortedByScore[0]?.score || 0;
   };
 
   if (isLoading) {
@@ -164,7 +170,8 @@ export default function ExamineeAttemptExamLeaderboard() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Exam Leaderboard</h1>
-          <p className="text-gray-600 mb-4">{examDetails?.exam_name || "Exam Results"}</p>
+          <p className="text-gray-600 mb-4">{examDetails.exam_name} - {examDetails.class_name}</p>
+          <p className="text-gray-600 mb-4">{examDetails.chapter} - {examDetails.subject}</p>
         </div>
 
         {/* Stats Summary */}
@@ -176,13 +183,14 @@ export default function ExamineeAttemptExamLeaderboard() {
             </div>
             <div className="bg-white rounded-xl p-4 shadow-md text-center">
               <div className="text-2xl font-bold text-green-600">
-                {Math.round(leaderboardData.reduce((sum, item) => sum + item.score, 0) / leaderboardData.length)}
+                {Math.max(...leaderboardData.map(item => item.score))}
+
               </div>
-              <div className="text-sm text-gray-600">Average Marks</div>
+              <div className="text-sm text-gray-600">Highest Marks</div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-md text-center">
-              <div className="text-2xl font-bold text-amber-600">{leaderboardData[0]?.score}</div>
-              <div className="text-sm text-gray-600">Highest Marks</div>
+              <div className="text-2xl font-bold text-amber-600">{calculateLowestMarks()}</div>
+              <div className="text-sm text-gray-600">Lowest Marks</div>
             </div>
           </div>
         )}

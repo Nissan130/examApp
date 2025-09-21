@@ -451,11 +451,7 @@ export default function CreateExam() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                <p className="text-xs font-medium text-blue-800">
-                  <span className="font-semibold">Exam Title:</span> {examTitle || "Your exam title will appear here"}
-                </p>
-              </div>
+
 
               {/* Negative Marking */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg mb-3">

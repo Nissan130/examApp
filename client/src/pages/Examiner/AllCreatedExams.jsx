@@ -321,95 +321,76 @@ export default function AllCreatedExams() {
           </>
         )}
       </div>
-      {/* Exam Code Modal */}
-      {showExamCodeModal && currentExam && (
-        <div className="fixed inset-0 bg-cyan-45  flex items-center justify-center z-50 p-4">
-          <div className="bg-blue-100 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-            {/* Close Button */}
+
+{/* Exam Code Modal */}
+{showExamCodeModal && currentExam && (
+  <div className="fixed inset-0 bg-white-100 bg-opacity-100 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all duration-300">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Exam Access Code</h3>
+          <button
+            onClick={() => setShowExamCodeModal(false)}
+            className="text-white hover:text-blue-100 transition-colors duration-200 p-1 rounded-full hover:bg-white/10 cursor-pointer"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p className="text-blue-100 text-sm">Share this code with students to join the exam</p>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        {/* Exam Info */}
+        <div className="mb-6">
+          <h4 className="text-lg font-semibold text-gray-800 mb-1">{currentExam.exam_name}</h4>
+          <p className="text-sm text-gray-600">{currentExam.subject} • {currentExam.class_name}</p>
+        </div>
+
+        {/* Exam Code Display */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">Exam Code</label>
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <span className="font-mono text-2xl font-bold text-blue-600 tracking-wider">
+              {currentExam.exam_code}
+            </span>
             <button
-              onClick={() => setShowExamCodeModal(false)}
-              className="absolute top-4 right-4 text-red-400 hover:text-gray-600 transition-colors cursor-pointer"
+              onClick={() => {
+                navigator.clipboard.writeText(currentExam.exam_code);
+                setCopiedExamCode(currentExam.exam_code);
+                setTimeout(() => setCopiedExamCode(null), 2000);
+              }}
+              className="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors duration-200 shadow-sm"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              {copiedExamCode === currentExam.exam_code ? (
+                <>
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm font-medium text-green-600">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-medium text-blue-600">Copy</span>
+                </>
+              )}
             </button>
-
-            {/* Header */}
-            <div className="text-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Exam Code</h3>
-              <p className="text-gray-600 text-sm mt-1">Share this code with students</p>
-            </div>
-
-            {/* Exam Code Display */}
-            {/* Exam Code Display */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Exam Code</label>
-              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-md px-3 py-2">
-                <span className="font-mono text-blue-600 font-semibold">{currentExam.exam_code}</span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(currentExam.exam_code);
-                    setCopiedExamCode(currentExam.exam_code); // ✅ Fix: Use exam_code, not exam_id
-                    setTimeout(() => setCopiedExamCode(null), 2000);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium min-w-[60px] transition-colors duration-200 cursor-pointer"
-                >
-                  {copiedExamCode === currentExam.exam_code ? ( // ✅ Fix: Compare with exam_code
-                    <span className="text-green-600 font-semibold">✓ Copied</span>
-                  ) : (
-                    "Copy"
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Shareable Link */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Shareable Link</label>
-              <div className="bg-white border border-gray-300 rounded-md p-3 mb-3">
-                <p className="text-xs text-gray-600 break-all">
-                  {`${window.location.origin}/join-exam?code=${currentExam.exam_code}`}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/join-exam?code=${currentExam.exam_code}`);
-                  setCopiedExamLink(currentExam.exam_code); // ✅ Fix: Use exam_code
-                  setTimeout(() => setCopiedExamLink(null), 2000);
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-200 flex items-center justify-center cursor-pointer"
-              >
-                {copiedExamLink === currentExam.exam_code ? ( // ✅ Fix: Compare with exam_code, not exam_id
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy Link
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Quick Tip */}
-            <p className="text-xs text-gray-500 text-center">
-              Students can join using the code or by clicking the link
-            </p>
           </div>
         </div>
-      )}
+
+  
+
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
