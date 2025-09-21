@@ -7,6 +7,9 @@ examinee_attempt_exams_bp = Blueprint(
     'examinee_attempt_exams', __name__, url_prefix='/api/examinee'
 )
 
+
+
+
 @examinee_attempt_exams_bp.route('/submit-exam', methods=['POST'])
 @token_required
 def examineeAttempExams(user):
@@ -17,7 +20,7 @@ def examineeAttempExams(user):
     examinee_id = uuid.UUID(str(user.id))
     exam_id = data.get('exam_id')
     questions_payload = data.get('questions', [])  # Full questions + options from frontend
-    time_taken = data.get('time_taken_minutes', 0)
+    time_taken_seconds = data.get('time_taken_seconds', 0)
     exam_name = data.get('exam_name')
     exam_code = data.get('exam_code')
     subject = data.get('subject')
@@ -25,6 +28,8 @@ def examineeAttempExams(user):
     class_name = data.get('class_name')
     total_marks = data.get('total_marks')
     total_time_minutes = data.get('total_time_minutes')
+    examiner_name = data.get('examiner_name')
+    negative_marks_value = data.get('negative_marks_value')
 
     if not exam_id:
         return jsonify({'error': 'Exam ID is required'}), 400
@@ -34,19 +39,36 @@ def examineeAttempExams(user):
     wrong_count = 0
     unanswered_count = 0
 
+    # Convert time_taken to integer to ensure it's stored correctly
+    try:
+        time_taken_seconds = int(time_taken_seconds)
+    except (ValueError, TypeError):
+        time_taken_seconds = 0  # Fallback to 0 if conversion fails
+
+
     # Create Exam Attempt Result
-    attempt_result = ExamineeAttemptExams(
+    attempt_exam = ExamineeAttemptExams(
         examinee_id=examinee_id,
         exam_id=uuid.UUID(exam_id),
+        exam_name=exam_name,
+        subject=subject,    
+        class_name=class_name,
+        chapter=chapter,
+        total_marks=total_marks,
+        total_time_minutes=total_time_minutes,
+        negative_marks_value = negative_marks_value,
+        examiner_name=examiner_name,
         score=0,
         total_questions=total_questions,
         correct_answers=0,
         wrong_answers=0,
         unanswered_questions=total_questions,
-        time_taken_minutes=time_taken
+        time_taken_seconds=time_taken_seconds,
+     
+        
     )
-    db.session.add(attempt_result)
-    db.session.flush()  # get attempt_result_id
+    db.session.add(attempt_exam)
+    db.session.flush()  # get attempt_exam_id
 
     # Save each question attempt
     attempted_questions = []
@@ -114,7 +136,7 @@ def examineeAttempExams(user):
 
         # Save to database
         attempt_question = ExamineeAttemptExamQuestions(
-            attempt_exam_id=attempt_result.attempt_exam_id,
+            attempt_exam_id=attempt_exam.attempt_exam_id,
             original_question_id=uuid.UUID(q.get('question_id')),
             question_text=q.get('question_text'),
             question_image_url=q.get('question_image_url'),
@@ -143,10 +165,10 @@ def examineeAttempExams(user):
         db.session.add(attempt_question)
 
     # Update overall attempt result
-    attempt_result.correct_answers = correct_count
-    attempt_result.wrong_answers = wrong_count
-    attempt_result.unanswered_questions = unanswered_count
-    attempt_result.score = correct_count
+    attempt_exam.correct_answers = correct_count
+    attempt_exam.wrong_answers = wrong_count
+    attempt_exam.unanswered_questions = unanswered_count
+    attempt_exam.score = correct_count
 
     try:
         db.session.commit()
@@ -158,7 +180,7 @@ def examineeAttempExams(user):
     return jsonify({
         'status': 'success',
         'message': 'Exam attempt saved successfully',
-        'attempt_result': {
+        'attempt_exam': {
             'examinee_id': str(examinee_id),
             'exam_id': exam_id,
             'score': correct_count,
@@ -166,8 +188,8 @@ def examineeAttempExams(user):
             'correct_answers': correct_count,
             'wrong_answers': wrong_count,
             'unanswered_questions': unanswered_count,
-            'time_taken_minutes': time_taken,
-            'created_at': attempt_result.created_at.isoformat() if attempt_result.created_at else None
+            'time_taken_seconds': time_taken_seconds,
+            'created_at': attempt_exam.created_at.isoformat() if attempt_exam.created_at else None
         },
         'exam_details': {
             'exam_name': exam_name,
@@ -183,64 +205,3 @@ def examineeAttempExams(user):
 
 
 
-#atempt exam result leaderboard
-@examinee_attempt_exams_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
-@token_required
-def get_exam_leaderboard(user, exam_id):
-    try:
-        # Validate exam_id
-        try:
-            exam_uuid = uuid.UUID(exam_id)
-        except ValueError:
-            return jsonify({'error': 'Invalid exam ID format'}), 400
-
-        # Get the exam details
-        from app.models.examinerModels.createExamModels import Exam  # Import your Exam model
-        exam = Exam.query.get(exam_uuid)
-        if not exam:
-            return jsonify({'error': 'Exam not found'}), 404
-
-        # Get all attempt results for this exam, ordered by score descending
-        attempts = ExamineeAttemptExams.query.filter_by(
-            exam_id=exam_uuid
-        ).order_by(
-            ExamineeAttemptExams.score.desc(),
-            ExamineeAttemptExams.time_taken_minutes.asc()
-        ).all()
-
-        leaderboard_data = []
-        
-        for rank, attempt in enumerate(attempts, 1):
-            # Get examinee details
-            from app.models.authModels.user import User  # Import your User model
-            examinee = User.query.get(attempt.examinee_id)
-            
-            if examinee:
-                leaderboard_data.append({
-                    'attempt_id': str(attempt.attempt_result_id),
-                    'rank': rank,
-                    'examinee_id': str(examinee.id),
-                    'name': examinee.name,
-                    'score': attempt.score,  # This should be the percentage score
-                    'correct_answers': attempt.correct_answers,
-                    'wrong_answers': attempt.wrong_answers,
-                    'unanswered_questions': attempt.unanswered_questions,
-                    'time_taken_minutes': attempt.time_taken_minutes,
-                    'exam_name': exam.exam_name,
-                    'created_at': attempt.created_at.isoformat() if attempt.created_at else None
-                })
-
-        return jsonify({
-            'status': 'success',
-            'exam': {
-                'exam_id': str(exam.id),
-                'exam_name': exam.exam_name,
-                'total_questions': exam.total_questions if hasattr(exam, 'total_questions') else None,
-                'total_marks': exam.total_marks if hasattr(exam, 'total_marks') else None
-            },
-            'leaderboard': leaderboard_data
-        }), 200
-
-    except Exception as e:
-        print(f"Error fetching leaderboard: {str(e)}")
-        return jsonify({'error': 'Failed to fetch leaderboard data'}), 500

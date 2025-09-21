@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.models import User, db, Exam
+from app.models import User, db, ExaminerCreatedExam
 
 enter_exam_code_bp = Blueprint('enter_exam_code', __name__, url_prefix='/api/examinee/')
 
@@ -18,7 +18,7 @@ def enterExamCode():
         return jsonify({'error': 'Exam code is required'}), 400
 
     #fetch exams by exam code
-    exam = Exam.query.filter_by(exam_code=exam_code).first()
+    exam = ExaminerCreatedExam.query.filter_by(exam_code=exam_code).first()
     if not exam:
         return jsonify({'status':'error', 'message': 'Invalid Exam Code'}), 404
 

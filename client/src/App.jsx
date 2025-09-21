@@ -19,10 +19,10 @@ import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
 import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
 import PDFGenerator from "./components/PDFGenerator";
 import EnterExamCode from "./pages/Examinee/EnterExamCode";
-import AttempExamResultShow from "./pages/Examinee/AttemptExamResultShow";
 import ExamAttemptResultDetails from "./pages/Examinee/ExamAttemptResultDetails";
 import ExamineeAttemptExamLeaderboard from "./pages/Examinee/ExamineeAttemptExamLeaderboard";
 import PreviousAttemptExam from "./pages/Examinee/PreviousAttemptExam";
+import PreviousAttemptExamDetails from "./pages/Examinee/previousAttemptExamDetails";
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -104,14 +104,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/examinee/attempt-exam/result"
-          element={
-            <ProtectedRoute requiredRole="examinee">
-              <AttempExamResultShow />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/examinee/attempt-exam/result-details"
           element={
@@ -121,7 +114,15 @@ function App() {
           }
         />
         <Route
-          path="/examinee/attempt-exam-result/leaderboard/:examId"
+          path="/examinee/previous-attempt-exam/:attemptExamId"
+          element={
+            <ProtectedRoute requiredRole="examinee">
+              <PreviousAttemptExamDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/examinee/attempt-exam-result/leaderboard/:exam_id"
           element={
             <ProtectedRoute requiredRole="examinee">
               <ExamineeAttemptExamLeaderboard />

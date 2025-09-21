@@ -59,6 +59,14 @@ export default function RunningExam() {
     setAnswers(newAnswers);
   };
 
+
+const handleTimeUpdate = (minutesElapsed) => {
+  const newTimeTaken = minutesElapsed * 60; // store total seconds
+  setTimeTaken(newTimeTaken);
+  // console.log("time taken: ", newTimeTaken); // Log the calculated value
+};
+
+
  // In your RunningExam component's handleSubmit function
 const handleSubmit = async () => {
   setIsSubmitting(true);
@@ -91,7 +99,9 @@ const handleSubmit = async () => {
       class_name: exam.class_name,
       total_marks: exam.total_marks,
       total_time_minutes: exam.total_time_minutes,
-      time_taken_minutes: timeTaken,
+      examiner_name: exam.examiner_name,
+      negative_marks_value: exam.negative_marks_value,
+      time_taken_seconds: timeTaken,
       questions: questionsPayload
     };
 
@@ -112,10 +122,10 @@ const handleSubmit = async () => {
       // Navigate directly to result details with the complete response data
       navigate("/examinee/attempt-exam/result-details", {
         state: {
-          examResult: response.data.attempt_result,
+          examResult: response.data.attempt_exam,
           examDetails: response.data.exam_details,
           questions: response.data.questions,
-          timeTaken: timeTaken,
+          timeTaken: response.data.attempt_exam.time_taken_seconds,
         }
       });
     } else {
@@ -135,9 +145,7 @@ const handleSubmit = async () => {
     handleSubmit();
   };
 
-  const handleTimeUpdate = (minutesElapsed) => {
-    setTimeTaken(minutesElapsed);
-  };
+
 
   const answeredCount = Object.keys(answers).length;
 

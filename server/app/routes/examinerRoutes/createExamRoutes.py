@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, Exam, Question
+from app.models import db, ExaminerCreatedExam, ExaminerCreatedExamQuestion
 import uuid
 from app.utils.cloudinary_utils import upload_image
 from app.routes.authRoutes.userRoutes import token_required
@@ -65,7 +65,7 @@ def create_full_exam(user):
         while not is_code_unique:
             exam_code = generate_exam_code()
             # Check if this code already exists in the database
-            existing_exam = Exam.query.filter_by(exam_code=exam_code).first()
+            existing_exam = ExaminerCreatedExam.query.filter_by(exam_code=exam_code).first()
             if not existing_exam:
                 is_code_unique = True
         # --- END EXAM CODE GENERATION --- #
@@ -74,7 +74,7 @@ def create_full_exam(user):
         data = json.loads(request.form.get("exam_data"))
 
         # 1️⃣ Create Exam
-        new_exam = Exam(
+        new_exam = ExaminerCreatedExam(
             exam_id=uuid.uuid4(),
             exam_name=data.get("exam_name"),
             exam_code=exam_code,  
@@ -105,7 +105,7 @@ def create_full_exam(user):
                 q_image_url = upload_result["url"]
                 q_image_id = upload_result["public_id"]
 
-            new_question = Question(
+            new_question = ExaminerCreatedExamQuestion(
                 question_id=uuid.uuid4(),
                 exam_id=new_exam.exam_id,
                 question_text=q.get("question_text"),

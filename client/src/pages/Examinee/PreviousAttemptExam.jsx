@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
-import { Eye, BarChart, Link as LinkIcon, Plus, Loader, Trash2 } from "lucide-react";
+import { Eye, BarChart, Link as LinkIcon, Plus, Loader, Trash2, Clock, Award, BookOpen } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import { API_BASE_URL } from "../../utils/api";
@@ -9,11 +9,28 @@ import { API_BASE_URL } from "../../utils/api";
 const Tooltip = ({ children, text }) => (
   <div className="relative group">
     {children}
-    <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white text-xs px-2 py-1 rounded-md whitespace-nowrap transition-opacity duration-200 z-50">
+    <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap transition-opacity duration-200 z-50 shadow-lg">
       {text}
     </span>
   </div>
 );
+
+// Score indicator component
+const ScoreIndicator = ({ score, total }) => {
+  const percentage = (score / total) * 100;
+  let colorClass = "";
+  
+  if (percentage >= 80) colorClass = "text-green-700 bg-green-100 border-green-200";
+  else if (percentage >= 60) colorClass = "text-blue-700 bg-blue-100 border-blue-200";
+  else if (percentage >= 40) colorClass = "text-yellow-700 bg-yellow-100 border-yellow-200";
+  else colorClass = "text-red-700 bg-red-100 border-red-200";
+  
+  return (
+    <div className={`px-3 py-1 rounded-full font-semibold border ${colorClass}`}>
+      Marks: {score}/{total}
+    </div>
+  );
+};
 
 export default function PreviousAttemptExam() {
   const { user, token } = useContext(GlobalContext);
@@ -28,10 +45,6 @@ export default function PreviousAttemptExam() {
     has_next: false,
     has_prev: false
   });
-
-
-  const [showExamCodeModal, setShowExamCodeModal] = useState(false);
-  const [currentExam, setCurrentExam] = useState(null);
 
   useEffect(() => {
     fetchMyExams();
@@ -65,14 +78,22 @@ export default function PreviousAttemptExam() {
     }
   };
 
-
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const formatTime = (minutes) => {
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hrs > 0) {
+      return `${hrs}h ${mins}m`;
+    }
+    return `${mins}m`;
   };
 
   if (loading) {
@@ -90,86 +111,93 @@ export default function PreviousAttemptExam() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 pt-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+        <div className="text-center mb-10 pt-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
             My Attempted Exams
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            View all exams you have attempted.
+          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+            Review all exams you have attempted and track your progress
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-8 max-w-3xl mx-auto">
             {error}
           </div>
         )}
 
         {exams.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="text-gray-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+          <div className="bg-white rounded-2xl shadow-lg p-10 text-center max-w-2xl mx-auto">
+            <div className="text-gray-300 mb-5">
+              <BookOpen className="w-16 h-16 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No exams attempted yet</h3>
-            <p className="text-gray-600 mb-4">You haven't attempted any exams yet.</p>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-3">No exams attempted yet</h3>
+            <p className="text-gray-600 mb-6">You haven't attempted any exams yet. Your attempts will appear here once you complete an exam.</p>
+            <Link
+              to="/examinee/dashboard"
+              className="inline-flex items-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors shadow-md hover:shadow-lg"
+            >
+              Browse Available Exams
+            </Link>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
               {exams.map((exam) => (
                 <div
                   key={exam.attempt_exam_id}
-                  className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-300"
+                  className="bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden border border-gray-100 flex flex-col"
                 >
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    Exam ID: {exam.exam_id}
-                  </h3>
-
-                  <div className="flex flex-wrap gap-2 mb-4 text-sm">
-                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
-                      Score: {exam.score}
-                    </span>
-                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
-                      Questions: {exam.total_questions}
-                    </span>
-                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium">
-                      Correct: {exam.correct_answers}
-                    </span>
-                    <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-medium">
-                      Wrong: {exam.wrong_answers}
-                    </span>
-                    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-medium">
-                      Unanswered: {exam.unanswered_questions}
-                    </span>
-                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">
-                      Time: {exam.time_taken_minutes} min
-                    </span>
+                  {/* Exam Header with gradient */}
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-5 text-white">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold line-clamp-2">{exam.exam_name}</h3>
+                      <ScoreIndicator score={exam.score} total={exam.total_questions} />
+                    </div>
+                    <p className="text-blue-100 text-sm">
+                      {exam.chapter} • {exam.subject} • {exam.class_name}
+                    </p>
                   </div>
 
-                  <div className="text-xs text-gray-500 mb-4">
-                    Attempted: {formatDate(exam.created_at)}
+                  {/* Stats */}
+                  <div className="p-5 flex-grow">
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div className="bg-blue-50 p-3 rounded-xl text-center">
+                        <div className="text-xs text-blue-600 mb-1">QUESTIONS</div>
+                        <div className="font-bold text-gray-800 text-lg">{exam.total_questions}</div>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-xl text-center">
+                        <div className="text-xs text-purple-600 mb-1">TIME TAKEN</div>
+                        <div className="font-bold text-gray-800 text-lg">{formatTime(exam.time_taken_seconds)}</div>
+                      </div>
+                    </div>
+
+                    {/* Attempted Date */}
+                    <div className="flex items-center text-sm text-gray-500 mb-1">
+                      <Clock size={14} className="mr-2" />
+                      Attempted on: {formatDate(exam.created_at)}
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex justify-between mt-4 flex-wrap gap-2">
+                  <div className="px-5 pb-5 flex gap-3">
                     <Tooltip text="View Exam Details">
                       <Link
-                        to={`/examinee/exam-details/${exam.exam_id}`}
-                        className="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md transition transform hover:scale-110 duration-200 flex items-center justify-center"
+                        to={`/examinee/previous-attempt-exam/${exam.attempt_exam_id}`}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl flex items-center justify-center transition-colors shadow-sm"
                       >
-                        <Eye size={18} />
+                        <Eye size={18} className="mr-2" />
+                        Details
                       </Link>
                     </Tooltip>
-
                     <Tooltip text="View Results">
                       <Link
-                        to={`/examinee/results/${exam.attempt_exam_id}`}
-                        className="p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl shadow-md transition transform hover:scale-110 duration-200 flex items-center justify-center"
+                        to={`/examinee/attempt-exam-result/leaderboard/${exam.exam_id}`}
+                        className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl flex items-center justify-center transition-colors shadow-sm"
                       >
-                        <BarChart size={18} />
+                        <BarChart size={18} className="mr-2" />
+                        Results
                       </Link>
                     </Tooltip>
                   </div>
@@ -180,11 +208,11 @@ export default function PreviousAttemptExam() {
             {/* Pagination */}
             {pagination.total_pages > 1 && (
               <div className="flex justify-center mt-8">
-                <nav className="flex items-center gap-2">
+                <nav className="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm">
                   <button
                     onClick={() => fetchMyExams(pagination.page - 1)}
                     disabled={!pagination.has_prev}
-                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
+                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
                     Previous
                   </button>
@@ -193,9 +221,9 @@ export default function PreviousAttemptExam() {
                     <button
                       key={pageNum}
                       onClick={() => fetchMyExams(pageNum)}
-                      className={`px-4 py-2 rounded-lg border ${pagination.page === pageNum
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
+                      className={`px-4 py-2 rounded-lg border transition-colors ${pagination.page === pageNum
+                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        : "bg-white border-gray-300 hover:bg-gray-50"
                         }`}
                     >
                       {pageNum}
@@ -205,7 +233,7 @@ export default function PreviousAttemptExam() {
                   <button
                     onClick={() => fetchMyExams(pagination.page + 1)}
                     disabled={!pagination.has_next}
-                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 cursor-pointer"
+                    className="px-4 py-2 bg-white rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
                     Next
                   </button>
