@@ -282,7 +282,6 @@ export default function ExamineeAttemptExamLeaderboard() {
                     <div className="col-span-4 flex items-center space-x-3">
                       <div>
                         <div className="font-semibold text-gray-800">{item.name || item.examinee_name}</div>
-                        <div className="text-xs text-gray-500">{item.exam_name || examDetails?.exam_name}</div>
                       </div>
                     </div>
 
