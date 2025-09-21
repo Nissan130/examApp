@@ -51,7 +51,7 @@ export default function EditCreatedExam() {
             setError("");
 
             const response = await axios.get(
-                `${API_BASE_URL}/api/exam/my-created-exams/view-created-exam/${examId}`,
+                `${API_BASE_URL}/api/examiner/my-created-exams/view-created-exam/${examId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -410,7 +410,7 @@ export default function EditCreatedExam() {
             });
 
             const response = await axios.put(
-                `${API_BASE_URL}/api/exam/my-created-exams/update-exam/${examId}`,
+                `${API_BASE_URL}/api/examiner/my-created-exams/update-exam/${examId}`,
                 formData,
                 {
                     headers: {

@@ -53,7 +53,7 @@ export default function ViewCreatedExam() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_BASE_URL}/api/exam/my-created-exams/view-created-exam/${examId}`,
+        `${API_BASE_URL}/api/examiner/my-created-exams/view-created-exam/${examId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.status === "success") setExam(response.data.exam);

@@ -9,7 +9,7 @@ import random
 import string
 
 
-create_exam_bp = Blueprint("create_exam_bp", __name__, url_prefix="/api/exam")
+create_exam_bp = Blueprint("create_exam_bp", __name__, url_prefix="/api/examiner")
 
 
 # --- ADD THIS HELPER FUNCTION --- #

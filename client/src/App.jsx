@@ -23,6 +23,7 @@ import ExamAttemptResultDetails from "./pages/Examinee/ExamAttemptResultDetails"
 import ExamineeAttemptExamLeaderboard from "./pages/Examinee/ExamineeAttemptExamLeaderboard";
 import PreviousAttemptExam from "./pages/Examinee/PreviousAttemptExam";
 import PreviousAttemptExamDetails from "./pages/Examinee/PreviousAttemptExamDetails";
+import ExaminerTakenExamLeaderboard from './pages/Examiner/ExaminerTakenExamLeaderboard'
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -176,6 +177,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="examiner">
               <EditCreatedExam />
+            </ProtectedRoute>
+          }
+        />
+          <Route
+          path="/examiner/taken-exam-result/leaderboard/:exam_id"
+          element={
+            <ProtectedRoute requiredRole="examiner">
+              <ExaminerTakenExamLeaderboard />
             </ProtectedRoute>
           }
         />

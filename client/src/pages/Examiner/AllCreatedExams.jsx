@@ -52,7 +52,7 @@ export default function AllCreatedExams() {
       setError("");
 
       const response = await axios.get(
-        `${API_BASE_URL}/api/exam/my-created-exams?page=${page}&per_page=${pagination.per_page}`,
+        `${API_BASE_URL}/api/examiner/my-created-exams?page=${page}&per_page=${pagination.per_page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -95,7 +95,7 @@ export default function AllCreatedExams() {
     try {
       setDeleting(true);
       const response = await axios.delete(
-        `${API_BASE_URL}/api/exam/my-created-exams/delete-exam/${examToDelete.id}`,
+        `${API_BASE_URL}/api/examiner/my-created-exams/delete-exam/${examToDelete.id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -253,7 +253,7 @@ export default function AllCreatedExams() {
 
                     <Tooltip text="View Results">
                       <Link
-                        to={`/examiner/results/${exam.exam_id}`}
+                        to={`/examiner/taken-exam-result/leaderboard/${exam.exam_id}`}
                         className="p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl shadow-md transition transform hover:scale-110 duration-200 flex items-center justify-center"
                       >
                         <BarChart size={18} />

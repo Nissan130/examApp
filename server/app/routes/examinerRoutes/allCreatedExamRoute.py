@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, ExaminerCreatedExam, ExaminerCreatedExamQuestion
+from app.models import db, ExaminerCreatedExam, ExaminerCreatedExamQuestion,ExamineeAttemptExams, ExamineeAttemptExamQuestions
 import uuid
 from app.utils.cloudinary_utils import upload_image
 from app.routes.authRoutes.userRoutes import token_required
 import json
 
-all_created_exam_bp = Blueprint("all_created_exam", __name__, url_prefix="/api/exam")
+all_created_exam_bp = Blueprint("all_created_exam", __name__, url_prefix="/api/examiner")
 
 # -----------------------------
 # Get all exams created by the logged-in user (without status/delete)
@@ -268,6 +268,78 @@ def delete_exam(user, exam_id):
             'details': str(e)
         }), 500
 
+
+# Attempt exam result leaderboard
+@all_created_exam_bp.route('/taken-exam-result/<exam_id>/leaderboard', methods=['GET'])
+@token_required
+def get_exam_leaderboard(user, exam_id):
+    try:
+        # Validate exam_id
+        try:
+            exam_uuid = uuid.UUID(exam_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid exam ID format'}), 400
+
+        # Get all attempt results for this exam, ordered by score then time
+        attempts = ExamineeAttemptExams.query.filter_by(
+            exam_id=exam_uuid
+        ).order_by(
+            ExamineeAttemptExams.score.desc(),
+            ExamineeAttemptExams.time_taken_seconds.asc()
+        ).all()
+
+        if not attempts:
+            return jsonify({'error': 'No attempts found for this exam'}), 404
+
+        leaderboard_data = []
+        current_user_rank = None
+
+        for rank, attempt in enumerate(attempts, 1):
+            from app.models.authModels.user import User
+            examinee = User.query.get(attempt.examinee_id)
+
+            row = {
+                'attempt_exam_id': str(attempt.attempt_exam_id),
+                'rank': rank,
+                'examinee_id': str(examinee.id) if examinee else None,
+                'name': examinee.name if examinee else "Unknown",
+                'score': attempt.score,
+                'correct_answers': attempt.correct_answers,
+                'wrong_answers': attempt.wrong_answers,
+                'unanswered_questions': attempt.unanswered_questions,
+                'time_taken_seconds': attempt.time_taken_seconds,
+                'created_at': attempt.created_at.isoformat() if attempt.created_at else None
+            }
+            leaderboard_data.append(row)
+
+            # Track current user's rank
+            if attempt.examinee_id == user.id:
+                current_user_rank = rank
+
+        # Use the first attempt for exam snapshot
+        exam_snapshot = attempts[0]
+
+        return jsonify({
+            'status': 'success',
+            'exam': {
+                'exam_id': str(exam_snapshot.exam_id),
+                'exam_name': exam_snapshot.exam_name,
+                'subject': exam_snapshot.subject,
+                'chapter': exam_snapshot.chapter,
+                'class_name': exam_snapshot.class_name,
+                'total_questions': exam_snapshot.total_questions,
+                'total_marks': exam_snapshot.total_marks,
+                'total_time_minutes': exam_snapshot.total_time_minutes,
+                'negative_marks_value': exam_snapshot.negative_marks_value,
+                'examiner_name': exam_snapshot.examiner_name,
+            },
+            'leaderboard': leaderboard_data,
+            'my_rank': current_user_rank
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching leaderboard: {str(e)}")
+        return jsonify({'error': 'Failed to fetch leaderboard data'}), 500
 
 
 

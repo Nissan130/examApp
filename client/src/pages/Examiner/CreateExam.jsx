@@ -246,7 +246,7 @@ export default function CreateExam() {
       });
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/exam/create-exam`,
+        `${API_BASE_URL}/api/examiner/create-exam`,
         formData,
         {
           headers: {
