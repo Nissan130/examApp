@@ -63,6 +63,7 @@ export default function RunningExam() {
 const handleTimeUpdate = (minutesElapsed) => {
   const newTimeTaken = minutesElapsed * 60; // store total seconds
   setTimeTaken(newTimeTaken);
+  // console.log("time taken: ", newTimeTaken); // Log the calculated value
 };
 
 
