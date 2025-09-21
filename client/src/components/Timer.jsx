@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 export default function Timer({ duration, onTimeUp, onTimeUpdate }) {
   const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert minutes to seconds
-  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -14,19 +14,20 @@ export default function Timer({ duration, onTimeUp, onTimeUpdate }) {
       setTimeLeft(prevTime => {
         const newTime = prevTime - 1;
         
-        // Calculate elapsed minutes for the backend
-        const newElapsedMinutes = duration - (newTime / 60);
-        if (Math.floor(newElapsedMinutes) > elapsedMinutes) {
-          setElapsedMinutes(Math.floor(newElapsedMinutes));
-          onTimeUpdate && onTimeUpdate(Math.floor(newElapsedMinutes));
-        }
+        // Calculate elapsed time correctly
+        const newElapsedSeconds = (duration * 60) - newTime;
+        setElapsedSeconds(newElapsedSeconds);
+        
+        // Send precise elapsed time in MINUTES (as float)
+        const elapsedMinutes = newElapsedSeconds / 60;
+        onTimeUpdate && onTimeUpdate(elapsedMinutes);
         
         return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, duration, onTimeUp, onTimeUpdate, elapsedMinutes]);
+  }, [timeLeft, duration, onTimeUp, onTimeUpdate]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
