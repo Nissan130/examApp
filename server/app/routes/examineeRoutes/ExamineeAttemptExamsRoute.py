@@ -1,15 +1,15 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, ExamineeAttemptExamResult, ExamineeAttemptQuestions
+from app.models import db, ExamineeAttemptExams, ExamineeAttemptExamQuestions
 from app.routes.authRoutes.userRoutes import token_required
 import uuid
 
-examinee_attempt_exam_result_bp = Blueprint(
-    'examinee_attempt_exam_result', __name__, url_prefix='/api/examinee'
+examinee_attempt_exams_bp = Blueprint(
+    'examinee_attempt_exams', __name__, url_prefix='/api/examinee'
 )
 
-@examinee_attempt_exam_result_bp.route('/attempt-exam-result', methods=['POST'])
+@examinee_attempt_exams_bp.route('/submit-exam', methods=['POST'])
 @token_required
-def examineeAttempExamResult(user):
+def examineeAttempExams(user):
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -35,7 +35,7 @@ def examineeAttempExamResult(user):
     unanswered_count = 0
 
     # Create Exam Attempt Result
-    attempt_result = ExamineeAttemptExamResult(
+    attempt_result = ExamineeAttemptExams(
         examinee_id=examinee_id,
         exam_id=uuid.UUID(exam_id),
         score=0,
@@ -113,8 +113,8 @@ def examineeAttempExamResult(user):
         attempted_questions.append(question_data)
 
         # Save to database
-        attempt_question = ExamineeAttemptQuestions(
-            attempt_result_id=attempt_result.attempt_result_id,
+        attempt_question = ExamineeAttemptExamQuestions(
+            attempt_exam_id=attempt_result.attempt_exam_id,
             original_question_id=uuid.UUID(q.get('question_id')),
             question_text=q.get('question_text'),
             question_image_url=q.get('question_image_url'),
@@ -184,7 +184,7 @@ def examineeAttempExamResult(user):
 
 
 #atempt exam result leaderboard
-@examinee_attempt_exam_result_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
+@examinee_attempt_exams_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
 @token_required
 def get_exam_leaderboard(user, exam_id):
     try:
@@ -201,11 +201,11 @@ def get_exam_leaderboard(user, exam_id):
             return jsonify({'error': 'Exam not found'}), 404
 
         # Get all attempt results for this exam, ordered by score descending
-        attempts = ExamineeAttemptExamResult.query.filter_by(
+        attempts = ExamineeAttemptExams.query.filter_by(
             exam_id=exam_uuid
         ).order_by(
-            ExamineeAttemptExamResult.score.desc(),
-            ExamineeAttemptExamResult.time_taken_minutes.asc()
+            ExamineeAttemptExams.score.desc(),
+            ExamineeAttemptExams.time_taken_minutes.asc()
         ).all()
 
         leaderboard_data = []
