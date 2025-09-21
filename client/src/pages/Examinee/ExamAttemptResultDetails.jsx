@@ -37,7 +37,8 @@ export default function ExamAttemptResultDetails() {
   const attemptId = examResult?.attempt_id;
 
   // Calculate score and counts if not provided directly
-  const score = examResult?.score || (examResult?.correct_answers / questions?.length * 100) || 0;
+  const score = examResult?.score
+  const score_percentage = Math.round(((score / questions?.length) * 100), 2)
   const correctAnswers = examResult?.correct_answers || (questions?.filter(q => q.is_correct).length) || 0;
   const wrongAnswers = examResult?.wrong_answers || (questions?.filter(q => !q.is_correct && q.selected_answer).length) || 0;
   const unansweredQuestions = examResult?.unanswered_questions || (questions?.filter(q => !q.selected_answer).length) || 0;
@@ -163,8 +164,6 @@ export default function ExamAttemptResultDetails() {
         </div>
 
         {/* Summary Card */}
-        {/* Summary Card */}
-        {/* Summary Card */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 text-center">Attempt Summary</h2>
 
@@ -173,7 +172,7 @@ export default function ExamAttemptResultDetails() {
             {/* Marks Obtained */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 flex-1 text-center">
               <div className="text-3xl font-bold text-blue-700 mb-1">
-                {correctAnswers}<span className="text-lg">/{questions.length}</span>
+                {score}<span className="text-lg">/{questions.length}</span>
               </div>
               <div className="text-sm text-blue-800 font-medium">Marks Obtained</div>
             </div>
@@ -181,7 +180,7 @@ export default function ExamAttemptResultDetails() {
             {/* Percentage Score */}
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200 flex-1 text-center">
               <div className="text-3xl font-bold text-purple-700 mb-1">
-                {score.toFixed(1)}%
+                {score_percentage}%
               </div>
               <div className="text-sm text-purple-800 font-medium">Score Percentage</div>
             </div>
