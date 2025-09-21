@@ -19,7 +19,6 @@ import ViewCreatedExam from "./pages/Examiner/ViewCreatedExam";
 import EditCreatedExam from "./pages/Examiner/EditCreatedExam";
 import PDFGenerator from "./components/PDFGenerator";
 import EnterExamCode from "./pages/Examinee/EnterExamCode";
-import AttempExamResultShow from "./pages/Examinee/AttemptExamResultShow";
 import ExamAttemptResultDetails from "./pages/Examinee/ExamAttemptResultDetails";
 import ExamineeAttemptExamLeaderboard from "./pages/Examinee/ExamineeAttemptExamLeaderboard";
 import PreviousAttemptExam from "./pages/Examinee/PreviousAttemptExam";
@@ -104,14 +103,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/examinee/attempt-exam/result"
-          element={
-            <ProtectedRoute requiredRole="examinee">
-              <AttempExamResultShow />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/examinee/attempt-exam/result-details"
           element={
