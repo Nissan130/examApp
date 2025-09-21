@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, Exam, Question
+from app.models import db, ExaminerCreatedExam, ExaminerCreatedExamQuestion
 import uuid
 from app.utils.cloudinary_utils import upload_image
 from app.routes.authRoutes.userRoutes import token_required
@@ -17,10 +17,10 @@ def get_my_exams(user):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
 
-        exams_query = Exam.query.filter_by(user_id=user.id)
+        exams_query = ExaminerCreatedExam.query.filter_by(user_id=user.id)
         total_exams = exams_query.count()
 
-        exams = exams_query.order_by(Exam.created_at.desc()).paginate(
+        exams = exams_query.order_by(ExaminerCreatedExam.created_at.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
 
@@ -65,7 +65,7 @@ def get_my_exams(user):
 @token_required
 def get_exam_details(user, exam_id):
     try:
-        exam = Exam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
+        exam = ExaminerCreatedExam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
         if not exam:
             return jsonify({'status': 'error', 'message': 'Exam not found'}), 404
 
@@ -131,7 +131,7 @@ from datetime import datetime  # Add this import
 def update_exam(user, exam_id):
     try:
         # Get the exam to update
-        exam = Exam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
+        exam = ExaminerCreatedExam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
         if not exam:
             return jsonify({'status': 'error', 'message': 'Exam not found'}), 404
 
@@ -166,7 +166,7 @@ def update_exam(user, exam_id):
         # Update questions
         if 'questions' in data:
             # Delete existing questions
-            Question.query.filter_by(exam_id=exam.exam_id).delete()
+            ExaminerCreatedExamQuestion.query.filter_by(exam_id=exam.exam_id).delete()
 
             for i, q_data in enumerate(data['questions']):
                 # Question image
@@ -185,7 +185,7 @@ def update_exam(user, exam_id):
                     if q_image_id:
                         q_image_id = q_data.get('question_image_id')
 
-                question = Question(
+                question = ExaminerCreatedExamQuestion(
                     question_id=uuid.uuid4(),
                     exam_id=exam.exam_id,
                     question_text=q_data.get('question_text', ''),
@@ -247,7 +247,7 @@ def update_exam(user, exam_id):
 def delete_exam(user, exam_id):
     try:
         # Get the exam to delete
-        exam = Exam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
+        exam = ExaminerCreatedExam.query.filter_by(exam_id=uuid.UUID(exam_id), user_id=user.id).first()
         if not exam:
             return jsonify({'status': 'error', 'message': 'Exam not found'}), 404
 

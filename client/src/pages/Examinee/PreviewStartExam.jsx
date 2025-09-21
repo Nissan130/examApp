@@ -10,7 +10,7 @@ export default function PreviewStartExam() {
   if (!examineeAttemptExam) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>No exam loaded. Please join an exam first</p>
+        <p>No exam loaded. Please join an exam first.</p>
       </div>
     );
   }

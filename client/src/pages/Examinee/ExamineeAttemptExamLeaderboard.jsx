@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { GlobalContext } from "../../context/GlobalContext";
@@ -6,40 +7,29 @@ import { API_BASE_URL } from "../../utils/api";
 
 export default function ExamineeAttemptExamLeaderboard() {
   const navigate = useNavigate();
-  const { examId } = useParams();
+  const { exam_id } = useParams();
   const { token } = useContext(GlobalContext);
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [examDetails, setExamDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  console.log(examId);
-  
+  console.log(exam_id);
+
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       setIsLoading(true);
       try {
-        // Fetch exam details
-        // const examResponse = await axios.get(
-        //   `${API_BASE_URL}/api/exams/${examId}`,
-        //   {
-        //     headers: {
-        //       Authorization: `Bearer ${token}`,
-        //     },
-        //   }
-        // );
-        // setExamDetails(examResponse.data.exam);
 
-        // Fetch leaderboard data - CORRECTED ENDPOINT
         const leaderboardResponse = await axios.get(
-          `${API_BASE_URL}/api/examinee/exams/${examId}/leaderboard`,
+          `${API_BASE_URL}/api/examinee/attempt-exam/${exam_id}/leaderboard`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        
+
         // Handle different response structures
         const responseData = leaderboardResponse.data;
         if (responseData.leaderboard) {
@@ -52,7 +42,7 @@ export default function ExamineeAttemptExamLeaderboard() {
       } catch (err) {
         console.error("Error fetching leaderboard data:", err);
         setError("Failed to load leaderboard data. Please try again.");
-        
+
         // Fallback to mock data if API fails
         setLeaderboardData(generateMockLeaderboardData());
       } finally {
@@ -60,82 +50,32 @@ export default function ExamineeAttemptExamLeaderboard() {
       }
     };
 
-    if (examId && token) {
+    if (exam_id && token) {
       fetchLeaderboardData();
     }
-  }, [examId, token]);
+  }, [exam_id, token]);
 
-  // Generate mock data as fallback
-  const generateMockLeaderboardData = () => {
-    return [
-      {
-        id: 1,
-        rank: 1,
-        name: "John Smith",
-        score: 98,
-        correct_answers: 49,
-        wrong_answers: 1,
-        unanswered_questions: 0,
-        time_taken_minutes: 25,
-        exam_name: examDetails?.exam_name || "Mathematics Final",
-        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
-      },
-      {
-        id: 2,
-        rank: 2,
-        name: "Sarah Johnson",
-        score: 95,
-        correct_answers: 47,
-        wrong_answers: 2,
-        unanswered_questions: 1,
-        time_taken_minutes: 28,
-        exam_name: examDetails?.exam_name || "Mathematics Final",
-        avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
-      },
-      {
-        id: 3,
-        rank: 3,
-        name: "Mike Chen",
-        score: 92,
-        correct_answers: 46,
-        wrong_answers: 3,
-        unanswered_questions: 1,
-        time_taken_minutes: 22,
-        exam_name: examDetails?.exam_name || "Mathematics Final",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
-      },
-      {
-        id: 4,
-        rank: 4,
-        name: "Emily Davis",
-        score: 88,
-        correct_answers: 44,
-        wrong_answers: 4,
-        unanswered_questions: 2,
-        time_taken_minutes: 30,
-        exam_name: examDetails?.exam_name || "Mathematics Final",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
-      },
-      {
-        id: 5,
-        rank: 5,
-        name: "Alex Rodriguez",
-        score: 85,
-        correct_answers: 42,
-        wrong_answers: 5,
-        unanswered_questions: 3,
-        time_taken_minutes: 26,
-        exam_name: examDetails?.exam_name || "Mathematics Final",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face"
+
+
+  const formatTime = (timeInSeconds) => {
+    if (!timeInSeconds) return "0:00";
+
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    const seconds = timeInSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    else {
+      if (minutes < 10) {
+        return `0${minutes}:${seconds.toString().padStart(2, '0')}`;
       }
-    ];
-  };
+      else {
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
 
-  const formatTime = (minutes) => {
-    if (!minutes) return "0:00";
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
+    }
   };
 
   const getRankBadgeColor = (rank) => {
@@ -192,7 +132,7 @@ export default function ExamineeAttemptExamLeaderboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 mt-15">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -214,9 +154,9 @@ export default function ExamineeAttemptExamLeaderboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto mt-12">
         {/* Header */}
-        <div className="text-center mb-8 mt-12">
+        <div className="text-center mb-8 pt-12">
           <div className="w-20 h-20 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
@@ -226,6 +166,26 @@ export default function ExamineeAttemptExamLeaderboard() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Exam Leaderboard</h1>
           <p className="text-gray-600 mb-4">{examDetails?.exam_name || "Exam Results"}</p>
         </div>
+
+        {/* Stats Summary */}
+        {leaderboardData.length > 0 && (
+          <div className="mt-8 mb-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-4 shadow-md text-center">
+              <div className="text-2xl font-bold text-blue-600">{leaderboardData.length}</div>
+              <div className="text-sm text-gray-600">Total Participants</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-md text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {Math.round(leaderboardData.reduce((sum, item) => sum + item.score, 0) / leaderboardData.length)}
+              </div>
+              <div className="text-sm text-gray-600">Average Marks</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-md text-center">
+              <div className="text-2xl font-bold text-amber-600">{leaderboardData[0]?.score}</div>
+              <div className="text-sm text-gray-600">Highest Marks</div>
+            </div>
+          </div>
+        )}
 
         {/* Leaderboard Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -239,7 +199,7 @@ export default function ExamineeAttemptExamLeaderboard() {
                 Examinee
               </div>
               <div className="col-span-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Score
+                Obtained Marks
               </div>
               <div className="col-span-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Performance
@@ -250,12 +210,14 @@ export default function ExamineeAttemptExamLeaderboard() {
             </div>
           </div>
 
+
+
           {/* Leaderboard Items */}
           <div className="divide-y divide-gray-100">
             {leaderboardData.length > 0 ? (
               leaderboardData.map((item) => (
                 <div
-                  key={item.id || item.attempt_id}
+                  key={item.attempt_exam_id}
                   className="px-6 py-4 hover:bg-blue-50/50 transition-colors duration-200"
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
@@ -268,11 +230,6 @@ export default function ExamineeAttemptExamLeaderboard() {
 
                     {/* Examinee Info */}
                     <div className="col-span-4 flex items-center space-x-3">
-                      <img
-                        src={item.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face"}
-                        alt={item.name || item.examinee_name}
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
-                      />
                       <div>
                         <div className="font-semibold text-gray-800">{item.name || item.examinee_name}</div>
                         <div className="text-xs text-gray-500">{item.exam_name || examDetails?.exam_name}</div>
@@ -282,7 +239,7 @@ export default function ExamineeAttemptExamLeaderboard() {
                     {/* Score */}
                     <div className="col-span-2 text-center">
                       <div className="text-2xl font-bold text-gray-800">
-                        {item.score}%
+                        {item.score}
                       </div>
                     </div>
 
@@ -300,7 +257,7 @@ export default function ExamineeAttemptExamLeaderboard() {
                         {(item.unanswered_questions > 0) && (
                           <div className="text-center">
                             <div className="text-gray-600 font-semibold">{item.unanswered_questions}</div>
-                            <div className="text-gray-500">Missed</div>
+                            <div className="text-gray-500">Unanswered</div>
                           </div>
                         )}
                       </div>
@@ -312,7 +269,7 @@ export default function ExamineeAttemptExamLeaderboard() {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {formatTime(item.time_taken_minutes)}
+                        {formatTime(item.time_taken_seconds)}
                       </div>
                     </div>
                   </div>
@@ -345,25 +302,7 @@ export default function ExamineeAttemptExamLeaderboard() {
           </button>
         </div>
 
-        {/* Stats Summary */}
-        {leaderboardData.length > 0 && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-4 shadow-md text-center">
-              <div className="text-2xl font-bold text-blue-600">{leaderboardData.length}</div>
-              <div className="text-sm text-gray-600">Total Participants</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-md text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {Math.round(leaderboardData.reduce((sum, item) => sum + item.score, 0) / leaderboardData.length)}%
-              </div>
-              <div className="text-sm text-gray-600">Average Score</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-md text-center">
-              <div className="text-2xl font-bold text-amber-600">{leaderboardData[0]?.score}%</div>
-              <div className="text-sm text-gray-600">Top Score</div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

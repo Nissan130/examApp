@@ -18,27 +18,39 @@ class ExamineeAttemptExams(BaseModel):
         nullable=False
     )
     exam_id = db.Column(
-        UUID(as_uuid=True), db.ForeignKey("exams.exam_id", ondelete="CASCADE"),
+        UUID(as_uuid=True), db.ForeignKey("examiner_created_exams.exam_id", ondelete="CASCADE"),
         nullable=False
     )
 
+    # 🔹 Exam Snapshot Columns
+    exam_name = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    class_name = db.Column(db.String(255), nullable=False)
+    chapter = db.Column(db.String(255), nullable=False)
+    total_marks = db.Column(db.Integer, nullable=False)
+    total_time_minutes = db.Column(db.Integer, nullable=False)
+    negative_marks_value = db.Column(db.Float, nullable=True)
+    examiner_name = db.Column(db.String(255), nullable=True)
+
+    # 🔹 Attempt Results
     score = db.Column(db.Float, nullable=False)
     total_questions = db.Column(db.Integer, nullable=False)
     correct_answers = db.Column(db.Integer, nullable=False)
     wrong_answers = db.Column(db.Integer, nullable=False)
     unanswered_questions = db.Column(db.Integer, nullable=False)
-    time_taken_minutes = db.Column(db.Float, nullable=False)
+
+    # store as total seconds for precision
+    time_taken_seconds = db.Column(db.Integer, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # 🔹 Relationships
     questions = db.relationship(
         "ExamineeAttemptExamQuestions",
         backref="exam_attempt",
         cascade="all, delete-orphan",
         lazy=True
     )
-
 
 # -----------------------------
 # Per-Question Attempt Snapshot
@@ -58,7 +70,7 @@ class ExamineeAttemptExamQuestions(BaseModel):
 
     # 🔹 Snapshot of original question
     original_question_id = db.Column(
-        UUID(as_uuid=True), db.ForeignKey("questions.question_id", ondelete="SET NULL"),
+        UUID(as_uuid=True), db.ForeignKey("examiner_created_exam_questions.question_id", ondelete="SET NULL"),
         nullable=True
     )
     question_text = db.Column(db.Text, nullable=False)
