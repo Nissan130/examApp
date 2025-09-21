@@ -96,7 +96,7 @@ const handleSubmit = async () => {
     };
 
     const response = await axios.post(
-      `${API_BASE_URL}/api/examinee/attempt-exam-result`,
+      `${API_BASE_URL}/api/examinee/submit-exam`,
       payload,
       {
         headers: {
