@@ -8,7 +8,6 @@ import LandingPage from "./pages/LandingPage";
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
 import CreateExam from "./pages/Examiner/CreateExam";
 import ExamineeDashboard from "./pages/Examinee/ExamineeDashboard";
-import PreviousExams from "./pages/Examinee/PreviousExams";
 import PreviewStartExam from "./pages/Examinee/PreviewStartExam";
 import RunningExam from "./pages/Examinee/RunningExam";
 
@@ -23,6 +22,7 @@ import EnterExamCode from "./pages/Examinee/EnterExamCode";
 import AttempExamResultShow from "./pages/Examinee/AttemptExamResultShow";
 import ExamAttemptResultDetails from "./pages/Examinee/ExamAttemptResultDetails";
 import ExamineeAttemptExamLeaderboard from "./pages/Examinee/ExamineeAttemptExamLeaderboard";
+import PreviousAttemptExam from "./pages/Examinee/PreviousAttemptExam";
 
 function App() {
   const { user, currentRole, loading } = useContext(GlobalContext);
@@ -73,10 +73,10 @@ function App() {
           }
         />
         <Route
-          path="/prevexam"
+          path="/previous-attempt-exam"
           element={
             <ProtectedRoute requiredRole="examinee">
-              <PreviousExams exam={exam} setExam={setExam} />
+              <PreviousAttemptExam exam={exam} setExam={setExam} />
             </ProtectedRoute>
           }
         />
