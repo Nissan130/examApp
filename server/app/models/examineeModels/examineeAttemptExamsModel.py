@@ -6,10 +6,10 @@ import uuid
 # -----------------------------
 # Exam Attempt Result Overview
 # -----------------------------
-class ExamineeAttemptExamResult(BaseModel):
-    __tablename__ = "examinee_attempt_exam_results"
+class ExamineeAttemptExams(BaseModel):
+    __tablename__ = "examinee_attempt_exams"
 
-    attempt_result_id = db.Column(
+    attempt_exam_id = db.Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
         unique=True, nullable=False
     )
@@ -28,13 +28,12 @@ class ExamineeAttemptExamResult(BaseModel):
     wrong_answers = db.Column(db.Integer, nullable=False)
     unanswered_questions = db.Column(db.Integer, nullable=False)
     time_taken_minutes = db.Column(db.Float, nullable=False)
-    negative_marking_value = db.Column(db.Float, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
     questions = db.relationship(
-        "ExamineeAttemptQuestions",
+        "ExamineeAttemptExamQuestions",
         backref="exam_attempt",
         cascade="all, delete-orphan",
         lazy=True
@@ -44,16 +43,16 @@ class ExamineeAttemptExamResult(BaseModel):
 # -----------------------------
 # Per-Question Attempt Snapshot
 # -----------------------------
-class ExamineeAttemptQuestions(BaseModel):
-    __tablename__ = "examinee_attempt_questions"
+class ExamineeAttemptExamQuestions(BaseModel):
+    __tablename__ = "examinee_attempt_exam_questions"
 
     attempt_question_id = db.Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
         unique=True, nullable=False
     )
-    attempt_result_id = db.Column(
+    attempt_exam_id = db.Column(
         UUID(as_uuid=True),
-        db.ForeignKey("examinee_attempt_exam_results.attempt_result_id", ondelete="CASCADE"),
+        db.ForeignKey("examinee_attempt_exams.attempt_exam_id", ondelete="CASCADE"),
         nullable=False
     )
 

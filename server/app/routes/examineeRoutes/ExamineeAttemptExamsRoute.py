@@ -1,15 +1,15 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, ExamineeAttemptExamResult, ExamineeAttemptQuestions
+from app.models import db, ExamineeAttemptExams, ExamineeAttemptExamQuestions
 from app.routes.authRoutes.userRoutes import token_required
 import uuid
 
-examinee_attempt_exam_result_bp = Blueprint(
-    'examinee_attempt_exam_result', __name__, url_prefix='/api/examinee'
+examinee_attempt_exams_bp = Blueprint(
+    'examinee_attempt_exams', __name__, url_prefix='/api/examinee'
 )
 
-@examinee_attempt_exam_result_bp.route('/attempt-exam-result', methods=['POST'])
+@examinee_attempt_exams_bp.route('/submit-exam', methods=['POST'])
 @token_required
-def examineeAttempExamResult(user):
+def examineeAttempExams(user):
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -24,21 +24,18 @@ def examineeAttempExamResult(user):
     chapter = data.get('chapter')
     class_name = data.get('class_name')
     total_marks = data.get('total_marks')
-    negative_marking_value = data.get('negative_marking_value')
     total_time_minutes = data.get('total_time_minutes')
 
     if not exam_id:
         return jsonify({'error': 'Exam ID is required'}), 400
 
     total_questions = len(questions_payload)
-    total_score = 0
-
     correct_count = 0
     wrong_count = 0
     unanswered_count = 0
 
     # Create Exam Attempt Result
-    attempt_result = ExamineeAttemptExamResult(
+    attempt_result = ExamineeAttemptExams(
         examinee_id=examinee_id,
         exam_id=uuid.UUID(exam_id),
         score=0,
@@ -46,7 +43,6 @@ def examineeAttempExamResult(user):
         correct_answers=0,
         wrong_answers=0,
         unanswered_questions=total_questions,
-        negative_marking_value = negative_marking_value,
         time_taken_minutes=time_taken
     )
     db.session.add(attempt_result)
@@ -117,8 +113,8 @@ def examineeAttempExamResult(user):
         attempted_questions.append(question_data)
 
         # Save to database
-        attempt_question = ExamineeAttemptQuestions(
-            attempt_result_id=attempt_result.attempt_result_id,
+        attempt_question = ExamineeAttemptExamQuestions(
+            attempt_exam_id=attempt_result.attempt_exam_id,
             original_question_id=uuid.UUID(q.get('question_id')),
             question_text=q.get('question_text'),
             question_image_url=q.get('question_image_url'),
@@ -150,8 +146,7 @@ def examineeAttempExamResult(user):
     attempt_result.correct_answers = correct_count
     attempt_result.wrong_answers = wrong_count
     attempt_result.unanswered_questions = unanswered_count
-    total_score = correct_count -wrong_count*negative_marking_value
-    attempt_result.score = total_score
+    attempt_result.score = correct_count
 
     try:
         db.session.commit()
@@ -166,13 +161,11 @@ def examineeAttempExamResult(user):
         'attempt_result': {
             'examinee_id': str(examinee_id),
             'exam_id': exam_id,
-            'score': total_score,
+            'score': correct_count,
             'total_questions': total_questions,
             'correct_answers': correct_count,
             'wrong_answers': wrong_count,
             'unanswered_questions': unanswered_count,
-            'negative_marking_value':negative_marking_value,
-
             'time_taken_minutes': time_taken,
             'created_at': attempt_result.created_at.isoformat() if attempt_result.created_at else None
         },
@@ -191,7 +184,7 @@ def examineeAttempExamResult(user):
 
 
 #atempt exam result leaderboard
-@examinee_attempt_exam_result_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
+@examinee_attempt_exams_bp.route('/exams/<exam_id>/leaderboard', methods=['GET'])
 @token_required
 def get_exam_leaderboard(user, exam_id):
     try:
@@ -208,11 +201,11 @@ def get_exam_leaderboard(user, exam_id):
             return jsonify({'error': 'Exam not found'}), 404
 
         # Get all attempt results for this exam, ordered by score descending
-        attempts = ExamineeAttemptExamResult.query.filter_by(
+        attempts = ExamineeAttemptExams.query.filter_by(
             exam_id=exam_uuid
         ).order_by(
-            ExamineeAttemptExamResult.score.desc(),
-            ExamineeAttemptExamResult.time_taken_minutes.asc()
+            ExamineeAttemptExams.score.desc(),
+            ExamineeAttemptExams.time_taken_minutes.asc()
         ).all()
 
         leaderboard_data = []
