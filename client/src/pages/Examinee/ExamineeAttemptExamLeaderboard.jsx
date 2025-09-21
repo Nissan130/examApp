@@ -10,18 +10,14 @@ export default function ExamineeAttemptExamLeaderboard() {
   const { token } = useContext(GlobalContext);
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [examDetails, setExamDetails] = useState(null);
+  const [currentUserRank, setCurrentUserRank] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  console.log(exam_id);
-  console.log("exam details: ", examDetails);
-  
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       setIsLoading(true);
       try {
-
         const response = await axios.get(
           `${API_BASE_URL}/api/examinee/attempt-exam/${exam_id}/leaderboard`,
           {
@@ -31,10 +27,10 @@ export default function ExamineeAttemptExamLeaderboard() {
           }
         );
 
-        // Handle different response structures
         if (response.data.status === "success") {
           setLeaderboardData(response.data.leaderboard);
           setExamDetails(response.data.exam);
+          setCurrentUserRank(response.data.current_user_rank)
         } 
         else {
           setLeaderboardData([]);
@@ -51,8 +47,6 @@ export default function ExamineeAttemptExamLeaderboard() {
       fetchLeaderboardData();
     }
   }, [exam_id, token]);
-
-
 
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds) return "0:00";
@@ -71,7 +65,6 @@ export default function ExamineeAttemptExamLeaderboard() {
       else {
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
       }
-
     }
   };
 
@@ -93,11 +86,9 @@ export default function ExamineeAttemptExamLeaderboard() {
     }
   };
 
-  // Calculate lowest marks
   const calculateLowestMarks = () => {
     if (leaderboardData.length === 0) return 0;
     
-    // Sort by score in ascending order to get the lowest score
     const sortedByScore = [...leaderboardData].sort((a, b) => a.score - b.score);
     return sortedByScore[0]?.score || 0;
   };
@@ -176,7 +167,7 @@ export default function ExamineeAttemptExamLeaderboard() {
 
         {/* Stats Summary */}
         {leaderboardData.length > 0 && (
-          <div className="mt-8 mb-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-8 mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-4 shadow-md text-center">
               <div className="text-2xl font-bold text-blue-600">{leaderboardData.length}</div>
               <div className="text-sm text-gray-600">Total Participants</div>
@@ -184,7 +175,6 @@ export default function ExamineeAttemptExamLeaderboard() {
             <div className="bg-white rounded-xl p-4 shadow-md text-center">
               <div className="text-2xl font-bold text-green-600">
                 {Math.max(...leaderboardData.map(item => item.score))}
-
               </div>
               <div className="text-sm text-gray-600">Highest Marks</div>
             </div>
@@ -197,9 +187,9 @@ export default function ExamineeAttemptExamLeaderboard() {
 
         {/* Leaderboard Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Table Header */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-            <div className="grid grid-cols-12 gap-4 items-center">
+          {/* Table Header - Hidden on mobile */}
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200 hidden md:block">
+            <div className="grid grid-cols-12 gap-2 items-center">
               <div className="col-span-1 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Rank
               </div>
@@ -207,7 +197,7 @@ export default function ExamineeAttemptExamLeaderboard() {
                 Examinee
               </div>
               <div className="col-span-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Obtained Marks
+                Marks
               </div>
               <div className="col-span-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Performance
@@ -218,17 +208,69 @@ export default function ExamineeAttemptExamLeaderboard() {
             </div>
           </div>
 
-
-
           {/* Leaderboard Items */}
           <div className="divide-y divide-gray-100">
             {leaderboardData.length > 0 ? (
               leaderboardData.map((item) => (
                 <div
                   key={item.attempt_exam_id}
-                  className="px-6 py-4 hover:bg-blue-50/50 transition-colors duration-200"
+                  className="px-4 py-3 hover:bg-blue-50/50 transition-colors duration-200"
                 >
-                  <div className="grid grid-cols-12 gap-4 items-center">
+                  {/* Mobile View */}
+                  <div className="md:hidden">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getRankBadgeColor(item.rank)} mr-3`}>
+                          {getRankIcon(item.rank)}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-800 text-sm">{item.examinee_name}</div>
+                         
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-gray-800">
+                          {item.score}
+                        </div>
+                        <div className="text-xs text-gray-500">Marks</div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="text-xs text-gray-500 mb-1">Performance</div>
+                        <div className="flex space-x-3 text-xs">
+                          <div className="text-center">
+                            <div className="text-green-600 font-semibold">{item.correct_answers}</div>
+                            <div className="text-gray-500">Correct</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-red-600 font-semibold">{item.wrong_answers}</div>
+                            <div className="text-gray-500">Wrong</div>
+                          </div>
+                          {(item.unanswered_questions > 0) && (
+                            <div className="text-center">
+                              <div className="text-gray-600 font-semibold">{item.unanswered_questions}</div>
+                              <div className="text-gray-500">Unanswered</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="text-xs text-gray-500 mb-1">Time Taken</div>
+                        <div className="flex items-center justify-center text-sm text-gray-600">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {formatTime(item.time_taken_seconds)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden md:grid md:grid-cols-12 md:gap-2 items-center">
                     {/* Rank */}
                     <div className="col-span-1 flex justify-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getRankBadgeColor(item.rank)}`}>
@@ -295,22 +337,20 @@ export default function ExamineeAttemptExamLeaderboard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="text-center mt-8 space-x-4">
+        <div className="text-center mt-8 space-y-3 sm:space-y-0 sm:space-x-4">
           <button
             onClick={() => navigate('/examinee/dashboard')}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm"
+            className="block sm:inline-block w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm mb-2 sm:mb-0"
           >
             Back to Dashboard
           </button>
           <button
             onClick={() => navigate(-1)}
-            className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm"
+            className="block sm:inline-block w-full sm:w-auto px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm"
           >
             Go Back
           </button>
         </div>
-
-
       </div>
     </div>
   );

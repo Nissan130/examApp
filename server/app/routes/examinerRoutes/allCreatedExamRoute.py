@@ -303,6 +303,7 @@ def get_exam_leaderboard(user, exam_id):
                 'rank': rank,
                 'score': attempt.score,
                 'correct_answers': attempt.correct_answers,
+                'examinee_name': examinee.name if examinee else "Unknown",
                 'wrong_answers': attempt.wrong_answers,
                 'unanswered_questions': attempt.unanswered_questions,
                 'time_taken_seconds': attempt.time_taken_seconds,

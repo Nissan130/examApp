@@ -190,7 +190,7 @@ def get_exam_leaderboard(user, exam_id):
                 'attempt_exam_id': str(attempt.attempt_exam_id),
                 'rank': rank,
                 'examinee_id': str(examinee.id) if examinee else None,
-                'name': examinee.name if examinee else "Unknown",
+                'examinee_name': examinee.name if examinee else "Unknown",
                 'score': attempt.score,
                 'correct_answers': attempt.correct_answers,
                 'wrong_answers': attempt.wrong_answers,
@@ -222,7 +222,7 @@ def get_exam_leaderboard(user, exam_id):
                 'examiner_name': exam_snapshot.examiner_name,
             },
             'leaderboard': leaderboard_data,
-            'my_rank': current_user_rank
+            'current_user_rank': current_user_rank
         }), 200
 
     except Exception as e:
