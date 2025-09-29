@@ -1,93 +1,219 @@
 import { Link } from "react-router-dom";
-import { BookOpen, CheckCircle, UserCheck } from "lucide-react";
+import { BookOpen, CheckCircle, UserCheck, Shield, Clock, Award, ArrowRight, Play, BarChart3, Users } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-orange-100">
-      
-      {/* Navbar */}
-      {/* <nav className="w-full px-6 py-4 flex justify-between items-center bg-gradient-to-r from-yellow-100 to-orange-200 shadow-md fixed top-0 z-50">
-        <h1 className="text-2xl font-bold text-orange-600">Exam App</h1>
-        <div className="space-x-4">
-          <Link to="/login" className="text-gray-700 hover:text-orange-600 font-medium transition">Login</Link>
-          <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-medium transition">Register</Link>
-        </div>
-      </nav> */}
+  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
 
-      {/* Hero Section */}
-      <section className="flex flex-col-reverse md:flex-row items-center justify-between max-w-6xl mx-auto pt-28 px-6 md:px-12">
-        
-        {/* Text */}
-        <div className="md:w-1/2 mt-10 md:mt-0">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-orange-600 mb-6">
-            Welcome to Exam App
-          </h1>
-          <p className="text-gray-700 text-lg mb-6">
-            A smart platform for both Examinees and Examiners. Create exams, attempt tests, and track results—all in one place.
+    {/* Hero Section */}
+    <section className="relative overflow-hidden pt-32 pb-20">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Text Content */}
+          <div className="space-y-8">
+            <div>
+              <div className="inline-flex items-center px-4 py-2 bg-teal-50 border border-teal-200 rounded-full text-teal-700 text-sm font-medium mb-6">
+                <Shield className="w-4 h-4 mr-2" />
+                Trusted by 10+ examiners & examinees
+              </div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
+                Modern
+                <span className="block bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  Exam Platform
+                </span>
+              </h1>
+              <p className="text-xl text-slate-600 leading-relaxed mt-6 max-w-2xl">
+                Revolutionize your assessment process with our AI-powered platform. 
+                Create secure exams, deliver seamless testing experiences, and gain actionable insights.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link
+                to="/register"
+                className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 inline-flex items-center justify-center"
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+              <Link
+                to="/login"
+                className="bg-white border-2 border-slate-300 hover:border-teal-500 text-slate-700 hover:text-teal-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl inline-flex items-center justify-center"
+              >
+                View Demo
+                <Play className="ml-2 w-5 h-5" />
+              </Link>
+            </div>
+
+            {/* Trust Metrics */}
+            <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-slate-900">50K+</div>
+                <div className="text-sm text-slate-600">Exams Created</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-slate-900">98%</div>
+                <div className="text-sm text-slate-600">Success Rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-slate-900">24/7</div>
+                <div className="text-sm text-slate-600">Support</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hero Visual */}
+          <div className="relative">
+            <div className="relative z-10 bg-white rounded-3xl shadow-2xl p-8 border border-slate-200">
+              <img
+                src="/public/images/hero_image.webp"
+                alt="Modern Exam Platform Dashboard"
+                className="w-full rounded-2xl"
+              />
+            </div>
+            
+            {/* Floating Elements */}
+            <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-slate-200 z-20">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
+                  <Award className="text-teal-600 w-6 h-6" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">Top Rated</div>
+                  <div className="text-sm text-slate-500">By educators</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-teal-600 to-cyan-700 rounded-2xl shadow-xl p-4 text-white z-20">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="font-semibold">Real-time</div>
+                  <div className="text-sm text-teal-100">Results & Analytics</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* Features Section */}
+    <section className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">
+            Everything You Need for
+            <span className="block bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              Modern Assessments
+            </span>
+          </h2>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            Comprehensive tools for exam creation, delivery, and analysis in one integrated platform
           </p>
-          <div className="flex flex-wrap gap-4">
-            <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition">
-              Get Started
-            </Link>
-            <Link to="/login" className="bg-white border border-orange-500 text-orange-600 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition">
-              Explore Exams
-            </Link>
-          </div>
         </div>
 
-        {/* Hero Image */}
-        <div className="md:w-1/2 flex justify-center">
-          <img 
-            src="https://img.freepik.com/free-vector/online-exam-concept-illustration_114360-1285.jpg?w=740&t=st=1694265188~exp=1694265788~hmac=1dbeb8f11d70ed8d83322f39ab282e81d5c0b1502d4a80f1a92aa3e4be037b70" 
-            alt="Online Exam" 
-            className="w-full max-w-md rounded-2xl shadow-lg"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            {
+              icon: BookOpen,
+              title: "Smart Exam Builder",
+              description: "Create professional exams with AI-assisted question generation and advanced security features.",
+              color: "teal"
+            },
+            {
+              icon: CheckCircle,
+              title: "Seamless Testing",
+              description: "Deliver smooth exam experiences with auto-save, real-time monitoring, and instant results.",
+              color: "cyan"
+            },
+            {
+              icon: UserCheck,
+              title: "Advanced Analytics",
+              description: "Gain deep insights with comprehensive performance analytics and detailed reporting.",
+              color: "teal"
+            },
+            {
+              icon: Shield,
+              title: "Enterprise Security",
+              description: "Bank-level security with encryption, anti-cheating measures, and secure browser lockdown.",
+              color: "cyan"
+            },
+            {
+              icon: BarChart3,
+              title: "Performance Tracking",
+              description: "Monitor progress with detailed analytics and personalized improvement recommendations.",
+              color: "teal"
+            },
+            {
+              icon: Users,
+              title: "Collaborative Tools",
+              description: "Work together with team members, share question banks, and manage multiple examiners.",
+              color: "cyan"
+            }
+          ].map((feature, index) => (
+            <div 
+              key={index}
+              className="group bg-slate-50 hover:bg-white rounded-3xl p-8 transition-all duration-300 border border-slate-200 hover:border-teal-300 hover:shadow-2xl"
+            >
+              <div className={`w-16 h-16 bg-${feature.color}-100 group-hover:bg-${feature.color}-200 rounded-2xl flex items-center justify-center mb-6 transition-colors`}>
+                <feature.icon className={`text-${feature.color}-600 w-8 h-8`} />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-4">{feature.title}</h3>
+              <p className="text-slate-600 leading-relaxed">{feature.description}</p>
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
+    </section>
 
-      {/* Features Section */}
-      <section className="mt-20 px-6 md:px-12 max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl font-bold text-gray-800 mb-12">Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition">
-            <BookOpen size={40} className="mx-auto text-orange-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Create Exams</h3>
-            <p className="text-gray-600 text-sm">
-              Examiners can easily create and manage exams with questions and time limits.
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition">
-            <CheckCircle size={40} className="mx-auto text-orange-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Attempt Tests</h3>
-            <p className="text-gray-600 text-sm">
-              Examinees can attempt exams online with a smooth, user-friendly interface.
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition">
-            <UserCheck size={40} className="mx-auto text-orange-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Track Results</h3>
-            <p className="text-gray-600 text-sm">
-              Both examinees and examiners can track scores and exam statistics easily.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="mt-20 bg-orange-50 py-16 px-6 text-center rounded-2xl mx-6 md:mx-12">
-        <h2 className="text-3xl font-bold text-orange-600 mb-4">Ready to get started?</h2>
-        <p className="text-gray-700 mb-6">
-          Join thousands of users improving their exam experience with Exam App.
+    {/* CTA Section */}
+    <section className="py-20 bg-gradient-to-r from-slate-900 to-slate-800">
+      <div className="max-w-4xl mx-auto text-center px-6">
+        <h2 className="text-4xl font-bold text-white mb-6">
+          Ready to Transform Your Assessment Process?
+        </h2>
+        <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          Join thousands of educators and institutions using ExamPro to create better assessment experiences.
         </p>
-        <Link to="/register" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold transition">
-          Sign Up Now
-        </Link>
-      </section>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            to="/register"
+            className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-10 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 inline-flex items-center justify-center"
+          >
+            Start Free Trial
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Link>
+          <Link
+            to="/contact"
+            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-10 py-4 rounded-xl font-semibold text-lg transition-all duration-200 backdrop-blur-sm"
+          >
+            Schedule Demo
+          </Link>
+        </div>
+      </div>
+    </section>
 
-      {/* Footer */}
-      <footer className="mt-20 py-6 text-center text-gray-500 text-sm">
-        &copy; {new Date().getFullYear()} Exam App. All rights reserved.
-      </footer>
-    </div>
-  );
+    {/* Footer */}
+    <footer className="bg-slate-900 text-slate-400 py-12">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center space-x-3 mb-6 md:mb-0">
+            <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center">
+              <BookOpen className="text-white" size={18} />
+            </div>
+            <span className="text-xl font-bold text-white">ExamPro</span>
+          </div>
+          <div className="text-center md:text-right">
+            <p>&copy; {new Date().getFullYear()} ExamPro. All rights reserved.</p>
+            <p className="mt-2 text-slate-500">Professional Assessment Platform</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+);
 }

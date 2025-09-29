@@ -36,7 +36,7 @@ export default function Timer({ duration, onTimeUp, onTimeUpdate }) {
   };
 
   return (
-    <span className="font-mono font-semibold">
+    <span className="font-mono font-semibold text-red-600">
       {formatTime(timeLeft)}
     </span>
   );
