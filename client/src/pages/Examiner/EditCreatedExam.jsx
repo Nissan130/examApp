@@ -559,7 +559,7 @@ export default function EditCreatedExam() {
 
                             {/* Required Fields */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                <h3 className="text-lg font-semibold text-slate mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                     Required Information
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -599,7 +599,7 @@ export default function EditCreatedExam() {
 
                             {/* Additional Details */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                <h3 className="text-lg font-semibold text-slate mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                     Additional Information
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -759,7 +759,7 @@ export default function EditCreatedExam() {
                                 {exam.questions && exam.questions.map((q, qIndex) => (
                                     <div key={qIndex} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
                                         <div className="flex justify-between items-center mb-5">
-                                            <h3 className="text-xl font-bold text-slate-900 flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                            <h3 className="text-xl font-bold text-slate flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                                 Question {qIndex + 1}
                                             </h3>
                                             {exam.questions.length > 1 && (
@@ -846,7 +846,7 @@ export default function EditCreatedExam() {
 
                                         {/* Options */}
                                         <div className="mb-6">
-                                            <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                            <h4 className="text-lg font-semibold text-slate mb-4 flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     className="h-5 w-5 mr-2"
