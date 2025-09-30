@@ -4,12 +4,14 @@ import axios from "axios";
 import { GlobalContext } from "../../context/GlobalContext";
 import { Loader } from "lucide-react";
 import { API_BASE_URL } from "../../utils/api";
+import { useCustomAlert } from "../../context/CustomAlertContext";
 
 export default function EditCreatedExam() {
     const { examId } = useParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("details");
-    const [updating, setUpdating] = useState(false); // Loading state for update exam
+    const [updating, setUpdating] = useState(false);
+    const custom_alert = useCustomAlert();
 
     // State for tracking paste operations
     const [activePasteArea, setActivePasteArea] = useState(null);
@@ -44,6 +46,19 @@ export default function EditCreatedExam() {
             setLoading(false);
         }
     }, [examId]);
+
+    // Initialize file input refs
+    useEffect(() => {
+        exam.questions.forEach((_, qIndex) => {
+            const questionKey = `${qIndex}-questionImage`;
+            fileInputRefs.current[questionKey] = fileInputRefs.current[questionKey] || null;
+            
+            [0, 1, 2, 3].forEach(optIndex => {
+                const optionKey = `${qIndex}-optionImage-${optIndex}`;
+                fileInputRefs.current[optionKey] = fileInputRefs.current[optionKey] || null;
+            });
+        });
+    }, [exam.questions]);
 
     const fetchExamDetails = async () => {
         try {
@@ -157,15 +172,18 @@ export default function EditCreatedExam() {
         setExam({ ...exam, questions: updated });
     };
 
-    // Handle image upload
     // Handle image change - store File objects instead of URLs
-    // Handle image change - store File objects instead of URLs
+    const handleImageChange = (qIndex, field, fileOrEvent) => {
+        let file;
+        
+        if (fileOrEvent && fileOrEvent.target) {
+            file = fileOrEvent.target.files[0];
+            if (!file) return;
+        } else {
+            file = fileOrEvent;
+            if (!file) return;
+        }
 
-    // Handle image change - store File objects instead of URLs
-    const handleImageChange = (qIndex, field, file) => {
-        if (!file) return;
-
-        // Create a deep copy of the questions array
         const updated = exam.questions.map(q => ({
             ...q,
             optionsText: [...q.optionsText],
@@ -174,15 +192,14 @@ export default function EditCreatedExam() {
             optionImagesPreview: [...(q.optionImagesPreview || [null, null, null, null])]
         }));
 
-        const imageUrl = URL.createObjectURL(file); // For preview only
+        const imageUrl = URL.createObjectURL(file);
 
         if (field === "questionImage") {
-            updated[qIndex].questionImageUrl = file; // Store the File object
-            updated[qIndex].questionImagePreview = imageUrl; // For preview
+            updated[qIndex].questionImageUrl = file;
+            updated[qIndex].questionImagePreview = imageUrl;
         } else if (field.startsWith("optionImage-")) {
             const optIndex = parseInt(field.split("-")[1]);
 
-            // Ensure optionImages and optionImagesPreview arrays exist
             if (!updated[qIndex].optionImagesUrl) {
                 updated[qIndex].optionImagesUrl = [null, null, null, null];
             }
@@ -190,13 +207,14 @@ export default function EditCreatedExam() {
                 updated[qIndex].optionImagesPreview = [null, null, null, null];
             }
 
-            updated[qIndex].optionImagesUrl[optIndex] = file; // Store the File object
-            updated[qIndex].optionImagesPreview[optIndex] = imageUrl; // For preview
+            updated[qIndex].optionImagesUrl[optIndex] = file;
+            updated[qIndex].optionImagesPreview[optIndex] = imageUrl;
         }
 
         setExam({ ...exam, questions: updated });
     };
-    // Handle paste image
+
+    // Handle paste image - FIXED VERSION
     const handlePasteImage = (qIndex, field, e) => {
         e.preventDefault();
         const items = e.clipboardData.items;
@@ -206,30 +224,53 @@ export default function EditCreatedExam() {
             if (items[i].type.indexOf("image") !== -1) {
                 const file = items[i].getAsFile();
                 handleImageChange(qIndex, field, file);
-
-                // Clear the active paste area after a short delay
                 setTimeout(() => setActivePasteArea(null), 1000);
                 return;
             }
         }
 
-        // If no image, fallback to text
         const text = e.clipboardData.getData("text");
+        
         if (field.startsWith("optionImage-")) {
             const optIndex = parseInt(field.split("-")[1]);
-            handleQuestionChange(qIndex, `option-${optIndex}`, text);
+            const currentValue = exam.questions[qIndex].optionsText[optIndex];
+            const target = e.target;
+
+            if (target && target.selectionStart !== undefined) {
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+                handleQuestionChange(qIndex, `option-${optIndex}`, newValue);
+
+                setTimeout(() => {
+                    target.selectionStart = target.selectionEnd = start + text.length;
+                }, 0);
+            } else {
+                handleQuestionChange(qIndex, `option-${optIndex}`, currentValue + text);
+            }
         } else if (field === "questionImage") {
-            handleQuestionChange(qIndex, "question", text);
+            const currentValue = exam.questions[qIndex].questionText;
+            const target = e.target;
+
+            if (target && target.selectionStart !== undefined) {
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+                handleQuestionChange(qIndex, "question", newValue);
+
+                setTimeout(() => {
+                    target.selectionStart = target.selectionEnd = start + text.length;
+                }, 0);
+            } else {
+                handleQuestionChange(qIndex, "question", currentValue + text);
+            }
         }
 
-        // Clear the active paste area after a short delay
         setTimeout(() => setActivePasteArea(null), 500);
     };
 
     // Remove image
-    // Remove image
     const removeImage = (qIndex, field) => {
-        // Create a deep copy of the questions array
         const updated = exam.questions.map(q => ({
             ...q,
             optionsText: [...q.optionsText],
@@ -244,7 +285,6 @@ export default function EditCreatedExam() {
         } else if (field.startsWith("optionImage-")) {
             const optIndex = parseInt(field.split("-")[1]);
 
-            // Ensure arrays exist
             if (!updated[qIndex].optionImagesUrl) {
                 updated[qIndex].optionImagesUrl = [null, null, null, null];
             }
@@ -280,6 +320,7 @@ export default function EditCreatedExam() {
         };
         setExam({ ...exam, questions: [...exam.questions, newQuestion] });
     };
+
     const deleteQuestion = (qIndex) => {
         const updated = exam.questions.filter((_, i) => i !== qIndex);
         setExam({ ...exam, questions: updated });
@@ -290,14 +331,10 @@ export default function EditCreatedExam() {
         return (q.questionText && q.questionText.trim() !== "") || q.questionImageUrl !== null;
     };
 
-    // Check if all questions and options are filled
-
     // Check if option is filled (either text or image)
-    // Fix isOptionFilled function
     const isOptionFilled = (opt, optImage) => {
         return (opt && opt.trim() !== "") || (optImage !== null && optImage !== undefined);
     };
-
 
     // Check if all questions and options are filled
     const isQuestionsValid = () => {
@@ -312,18 +349,16 @@ export default function EditCreatedExam() {
         });
     };
 
-
     // Handle negative marking toggle
     const handleNegativeMarkingToggle = (checked) => {
         const negativeMarksValue = checked ? 0.25 : 0;
         setExam((prev) => ({ ...prev, negative_marks_value: negativeMarksValue }));
     };
 
-    //update the data and images in the database
     // Update the data and images in the database
     const updateExam = async () => {
         if (!isQuestionsValid()) {
-            alert("Please fill all questions, options, and mark correct answers before updating the exam.");
+            custom_alert.error("Please fill all questions, options, and mark correct answers before updating the exam.");
             return;
         }
 
@@ -332,7 +367,6 @@ export default function EditCreatedExam() {
 
             const formData = new FormData();
 
-            // Prepare JSON data for exam + questions + options
             const examData = {
                 exam_name: exam.exam_name,
                 subject: exam.subject,
@@ -363,22 +397,9 @@ export default function EditCreatedExam() {
                         optD_text: q.optionsText[3] || "",
                         correct_answer: ["A", "B", "C", "D"][q.correctOption] || null,
 
-                        // // Correct the question image ID logic
-                        // question_image_id: q.questionImageUrl instanceof File ? null : q.questionImageId || null,
-                        // question_image_url: q.questionImageUrl instanceof File ? null : q.questionImageUrl || null,
-
-
-                        // //option images
-                        // optA_image_id: opts[0] instanceof File ? null : optIds[0] || null,
-                        // optB_image_id: opts[1] instanceof File ? null : optIds[1] || null,
-                        // optC_image_id: opts[2] instanceof File ? null : optIds[2] || null,
-                        // optD_image_id: opts[3] instanceof File ? null : optIds[3] || null,
-
-                        // Existing image URLs safely
                         question_image_url: typeof questionImageUrl === "string" ? q.questionImageUrl : null,
                         question_image_id: typeof questionImageId === "string" ? q.questionImageId : null,
 
-                        // Options images
                         optA_image_url: typeof opts[0] === "string" ? opts[0] : null,
                         optA_image_id: typeof opts[0] === "string" ? optIds[0] : null,
                         optB_image_url: typeof opts[1] === "string" ? opts[1] : null,
@@ -387,10 +408,8 @@ export default function EditCreatedExam() {
                         optC_image_id: typeof opts[2] === "string" ? optIds[2] : null,
                         optD_image_url: typeof opts[3] === "string" ? opts[3] : null,
                         optD_image_id: typeof opts[3] === "string" ? optIds[3] : null,
-
                     };
                 })
-
             };
 
             formData.append("exam_data", JSON.stringify(examData));
@@ -421,25 +440,25 @@ export default function EditCreatedExam() {
             );
 
             if (response.data.status === "success") {
-                alert("Exam updated successfully!");
+                custom_alert.success("Exam updated successfully!");
                 navigate(`/examiner/my-created-exam/view-created-exam/${examId}`);
             } else {
-                setError(response.data.message || "Failed to update exam");
+                custom_alert.error(response.data.message || "Failed to update exam");
             }
         } catch (err) {
             console.error("Error updating exam:", err);
-            setError(err.response?.data?.message || "Failed to update exam");
+            custom_alert.error(err.response?.data?.message || "Failed to update exam");
         } finally {
             setUpdating(false);
         }
     };
 
-
-
     const handleCancelExam = () => {
-        if (window.confirm("Are you sure you want to cancel? All unsaved changes will be lost.")) {
-            navigate(-1);
-        }
+        custom_alert.confirm(
+            "Cancel Exam Update",
+            "Are you sure you want to cancel? All unsaved changes will be lost.",
+            () => navigate(-1)
+        );
     };
 
     // Parse datetime values for form inputs
@@ -453,9 +472,10 @@ export default function EditCreatedExam() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-                <div className="bg-white shadow-xl rounded-2xl p-8 text-center">
-                    <p className="text-gray-600 mb-4">Loading exam details...</p>
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-200">
+                    <Loader className="animate-spin h-8 w-8 text-teal-600 mx-auto mb-4" />
+                    <p className="text-slate-600 text-lg">Loading exam details...</p>
                 </div>
             </div>
         );
@@ -463,12 +483,12 @@ export default function EditCreatedExam() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-                <div className="bg-white shadow-xl rounded-2xl p-8 text-center">
-                    <p className="text-red-600 mb-4">{error}</p>
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-200">
+                    <p className="text-red-600 text-lg mb-4">{error}</p>
                     <button
                         onClick={() => navigate(-1)}
-                        className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition"
+                        className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                     >
                         Go Back
                     </button>
@@ -478,35 +498,43 @@ export default function EditCreatedExam() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-6 pt-12">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">
                         Edit Exam
                     </h1>
-                    <p className="text-gray-600 max-w-2xl mx-auto text-sm">
+                    <p className="text-slate-600 text-lg max-w-2xl mx-auto leading-relaxed">
                         Modify your exam with questions, options, and images
                     </p>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex border-b border-gray-200 mb-6">
+                <div className="flex border-b border-slate-200 mb-8 bg-white rounded-2xl shadow-lg p-1">
                     <button
-                        className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "details" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`flex-1 py-4 px-6 font-semibold text-base flex items-center justify-center rounded-xl transition-all duration-300 ${
+                            activeTab === "details" 
+                                ? "bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-lg" 
+                                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+                        }`}
                         onClick={() => setActiveTab("details")}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Exam Details
                     </button>
                     <button
-                        className={`py-3 px-5 font-medium text-base flex items-center ${activeTab === "questions" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"} ${!isDetailsValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`flex-1 py-4 px-6 font-semibold text-base flex items-center justify-center rounded-xl transition-all duration-300 ${
+                            activeTab === "questions" 
+                                ? "bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-lg" 
+                                : `text-slate-600 hover:text-slate-800 hover:bg-slate-50 ${!isDetailsValid ? 'opacity-50 cursor-not-allowed' : ''}`
+                        }`}
                         onClick={() => isDetailsValid && setActiveTab("questions")}
                         disabled={!isDetailsValid}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Questions
@@ -517,22 +545,24 @@ export default function EditCreatedExam() {
                 </div>
 
                 {/* Tab Content */}
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 transition-all duration-300 hover:shadow-2xl">
                     {activeTab === "details" ? (
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                                <span className="bg-blue-100 p-2 rounded-lg mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                                <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                </span>
+                                </div>
                                 Exam Details
                             </h2>
 
                             {/* Required Fields */}
-                            <div className="mb-4">
-                                <h3 className="text-base font-medium text-gray-800 mb-3">Required Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                            <div className="mb-8">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                    Required Information
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                     {[
                                         { label: "Exam Name*", value: exam.exam_name, setter: (val) => handleExamChange("exam_name", val) },
                                         { label: "Subject/Course Name*", value: exam.subject, setter: (val) => handleExamChange("subject", val) },
@@ -547,7 +577,7 @@ export default function EditCreatedExam() {
                                                 placeholder={item.label}
                                                 value={item.value}
                                                 onChange={(e) => item.setter(e.target.value)}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500 hover:border-slate-300"
                                                 required
                                             />
                                         </div>
@@ -556,87 +586,89 @@ export default function EditCreatedExam() {
                             </div>
 
                             {/* Description */}
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Description / Instructions</label>
+                            <div className="mb-8">
+                                <label className="block text-sm font-semibold text-slate-700 mb-3">Description / Instructions</label>
                                 <textarea
                                     placeholder="Enter exam instructions or description..."
                                     value={exam.description}
                                     onChange={(e) => handleExamChange("description", e.target.value)}
-                                    rows={2}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition duration-200 text-sm"
+                                    rows={3}
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none transition-all duration-200 text-slate-900 placeholder-slate-500 hover:border-slate-300"
                                 />
                             </div>
 
                             {/* Additional Details */}
-                            <div className="mb-4">
-                                <h3 className="text-base font-medium text-gray-800 mb-3">Additional Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="mb-8">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                                    Additional Information
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Passing Marks</label>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-3">Passing Marks</label>
                                         <input
                                             type="text"
                                             placeholder="e.g., Pass mark 40%"
                                             value={exam.passing_marks}
                                             onChange={(e) => handleExamChange("passing_marks", e.target.value)}
-                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500 hover:border-slate-300"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Examiner Name</label>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-3">Examiner Name</label>
                                         <input
                                             type="text"
                                             placeholder="Enter examiner name"
                                             value={exam.examiner_name}
                                             onChange={(e) => handleExamChange("examiner_name", e.target.value)}
-                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500 hover:border-slate-300"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
-                                        <div className="flex gap-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-3">Start Date & Time</label>
+                                        <div className="flex gap-3">
                                             <input
                                                 type="date"
                                                 value={startDate}
                                                 onChange={(e) => handleExamChange("start_datetime", e.target.value + (startTime ? 'T' + startTime : ''))}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900"
                                             />
                                             <input
                                                 type="time"
                                                 value={startTime}
                                                 onChange={(e) => handleExamChange("start_datetime", (startDate || new Date().toISOString().split('T')[0]) + 'T' + e.target.value)}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900"
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">End Date & Time</label>
-                                        <div className="flex gap-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-3">End Date & Time</label>
+                                        <div className="flex gap-3">
                                             <input
                                                 type="date"
                                                 value={endDate}
                                                 onChange={(e) => handleExamChange("end_datetime", e.target.value + (endTime ? 'T' + endTime : ''))}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900"
                                             />
                                             <input
                                                 type="time"
                                                 value={endTime}
                                                 onChange={(e) => handleExamChange("end_datetime", (endDate || new Date().toISOString().split('T')[0]) + 'T' + e.target.value)}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900"
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Attempts Allowed</label>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-3">Attempts Allowed</label>
                                         <select
                                             value={exam.attempts_allowed}
                                             onChange={(e) => handleExamChange("attempts_allowed", e.target.value)}
-                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm"
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-slate-900"
                                         >
                                             <option value="single">Single attempt</option>
                                             <option value="multiple">Multiple attempts</option>
@@ -646,15 +678,16 @@ export default function EditCreatedExam() {
                                 </div>
                             </div>
 
-                            <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                                <p className="text-xs font-medium text-blue-800">
-                                    <span className="font-semibold">Exam Title:</span> {exam.exam_name || "Your exam title will appear here"}
+                            {/* Exam Title Preview */}
+                            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-xl border border-teal-200 mb-6">
+                                <p className="text-sm font-semibold text-slate-800">
+                                    <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">Exam Title:</span> {exam.exam_name || "Your exam title will appear here"}
                                 </p>
                             </div>
 
                             {/* Negative Marking */}
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg mb-3">
-                                <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-200 mb-6">
+                                <label className="flex items-center gap-3 font-semibold text-slate-700 text-sm">
                                     <div className="relative inline-flex items-center cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -662,7 +695,7 @@ export default function EditCreatedExam() {
                                             onChange={(e) => handleNegativeMarkingToggle(e.target.checked)}
                                             className="sr-only peer"
                                         />
-                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
                                     </div>
                                     Negative marking for each wrong answer
                                 </label>
@@ -675,21 +708,21 @@ export default function EditCreatedExam() {
                                             placeholder="e.g., 0.25"
                                             value={exam.negative_marks_value}
                                             onChange={(e) => handleExamChange("negative_marks_value", parseFloat(e.target.value))}
-                                            className="p-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-40 transition duration-200 text-sm"
+                                            className="p-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-40 transition duration-200 text-sm text-slate-900"
                                         />
                                     </div>
                                 )}
                             </div>
 
                             {/* Next Button */}
-                            <div className="flex justify-end mt-6">
+                            <div className="flex justify-end mt-8">
                                 <button
                                     onClick={() => setActiveTab("questions")}
                                     disabled={!isDetailsValid}
-                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm"
+                                    className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center text-base"
                                 >
                                     Next: Questions & Options
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
                                 </button>
@@ -697,24 +730,24 @@ export default function EditCreatedExam() {
                         </div>
                     ) : (
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center justify-center">
-                                <span className="bg-green-100 p-2 rounded-lg mr-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center justify-center">
+                                <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                </span>
+                                </div>
                                 Edit Questions
                             </h2>
 
                             {/* Instructions */}
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                                <h3 className="font-medium text-yellow-800 flex items-center mb-2">
+                            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 mb-8">
+                                <h3 className="font-semibold text-amber-800 flex items-center mb-3">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                     Instructions
                                 </h3>
-                                <ul className="text-yellow-700 text-sm list-disc pl-5 space-y-1">
+                                <ul className="text-amber-700 text-sm list-disc pl-5 space-y-2">
                                     <li>Fill all question texts and options (either text or image)</li>
                                     <li>Click the radio button next to the correct option to mark it as the right answer</li>
                                     <li>Add images to questions or options if needed (optional)</li>
@@ -724,15 +757,15 @@ export default function EditCreatedExam() {
                             {/* Questions Section */}
                             <div className="space-y-6">
                                 {exam.questions && exam.questions.map((q, qIndex) => (
-                                    <div key={qIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <div key={qIndex} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                                        <div className="flex justify-between items-center mb-5">
+                                            <h3 className="text-xl font-bold text-slate-900 flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                                 Question {qIndex + 1}
                                             </h3>
                                             {exam.questions.length > 1 && (
                                                 <button
                                                     onClick={() => deleteQuestion(qIndex)}
-                                                    className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition duration-200"
+                                                    className="text-red-500 hover:text-red-700 p-2 rounded-xl hover:bg-red-50 transition duration-200 shadow-sm"
                                                     title="Delete question"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -743,9 +776,9 @@ export default function EditCreatedExam() {
                                         </div>
 
                                         {/* Question Input */}
-                                        <div className="mb-4">
+                                        <div className="mb-5">
                                             <div
-                                                className={`p-3 bg-white border ${!isQuestionFilled(q) ? "border-red-300" : "border-gray-300"} rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-blue-500' : ''}`}
+                                                className={`p-4 bg-white border-2 ${!isQuestionFilled(q) ? "border-red-300" : "border-slate-300"} rounded-xl focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent transition duration-200 ${activePasteArea === `${qIndex}-questionImage` ? 'ring-2 ring-teal-500 border-teal-400' : ''}`}
                                                 onPaste={(e) => handlePasteImage(qIndex, "questionImage", e)}
                                             >
                                                 <textarea
@@ -753,12 +786,17 @@ export default function EditCreatedExam() {
                                                     onChange={(e) => handleQuestionChange(qIndex, "question", e.target.value)}
                                                     rows={3}
                                                     placeholder="Type your question here or paste an image with Ctrl+V..."
-                                                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none text-sm"
+                                                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none text-slate-900 placeholder-slate-500 text-base"
                                                     required
                                                 />
                                             </div>
                                             {!isQuestionFilled(q) && (
-                                                <p className="text-red-500 text-xs mt-1">Question text or image is required</p>
+                                                <p className="text-red-500 text-sm mt-2 flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Question text or image is required
+                                                </p>
                                             )}
                                         </div>
 
@@ -769,24 +807,23 @@ export default function EditCreatedExam() {
                                                     <img
                                                         src={q.questionImageUrl instanceof File ? q.questionImagePreview : q.questionImageUrl}
                                                         alt="question"
-                                                        className="w-32 h-32 object-contain border rounded-lg shadow-sm"
+                                                        className="w-40 h-40 object-contain border-2 border-teal-200 rounded-xl shadow-lg"
                                                     />
-
                                                     <button
                                                         onClick={() => removeImage(qIndex, "questionImage")}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200 transform hover:scale-110"
                                                         title="Remove image"
                                                     >
-
                                                         ✕
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-3 flex-wrap">
-                                                    <label className="cursor-pointer bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition duration-200 shadow-sm flex items-center text-xs"
+                                                    <button
                                                         onClick={() => triggerFileInput(qIndex, "questionImage")}
+                                                        className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-4 py-3 rounded-xl transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center text-sm font-medium cursor-pointer"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path
                                                                 strokeLinecap="round"
                                                                 strokeLinejoin="round"
@@ -795,24 +832,24 @@ export default function EditCreatedExam() {
                                                             />
                                                         </svg>
                                                         Upload Question Image
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            ref={el => fileInputRefs.current[`${qIndex}-questionImage`] = el}
-                                                            onChange={(e) => handleImageChange(qIndex, "questionImage", e.target.files[0])}
-                                                            className="hidden"
-                                                        />
-                                                    </label>
+                                                    </button>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        ref={el => fileInputRefs.current[`${qIndex}-questionImage`] = el}
+                                                        onChange={(e) => handleImageChange(qIndex, "questionImage", e)}
+                                                        className="hidden"
+                                                    />
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Options */}
                                         <div className="mb-6">
-                                            <h4 className="text-base font-medium text-gray-800 mb-3 flex items-center">
+                                            <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-4 w-4 mr-2 text-purple-500"
+                                                    className="h-5 w-5 mr-2"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -823,22 +860,22 @@ export default function EditCreatedExam() {
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {q.optionsText.map((opt, optIndex) => (
-                                                    <div key={optIndex} className="bg-white p-4 rounded-lg border border-gray-300">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <label className="block text-sm font-medium text-gray-700">Option {optIndex + 1}</label>
-                                                            <label className="flex items-center text-sm text-green-600 font-medium">
+                                                    <div key={optIndex} className="bg-white p-5 rounded-xl border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <label className="block text-sm font-semibold text-slate-700">Option {optIndex + 1}</label>
+                                                            <label className="flex items-center text-sm font-semibold text-green-600 cursor-pointer">
                                                                 <input
                                                                     type="radio"
                                                                     name={`correct-option-${qIndex}`}
                                                                     checked={q.correctOption === optIndex}
                                                                     onChange={() => handleCorrectOptionChange(qIndex, optIndex)}
-                                                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                                                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer"
                                                                 />
-                                                                <span className="ml-1 cursor-pointer">Correct</span>
+                                                                <span className="ml-2">Correct</span>
                                                             </label>
                                                         </div>
                                                         <div
-                                                            className={`mb-3 ${activePasteArea === `${qIndex}-optionImage-${optIndex}` ? 'ring-2 ring-blue-500 rounded-lg' : ''}`}
+                                                            className={`mb-4 ${activePasteArea === `${qIndex}-optionImage-${optIndex}` ? 'ring-2 ring-teal-500 rounded-lg p-2' : ''}`}
                                                             onPaste={(e) => handlePasteImage(qIndex, `optionImage-${optIndex}`, e)}
                                                         >
                                                             <input
@@ -846,16 +883,20 @@ export default function EditCreatedExam() {
                                                                 value={opt}
                                                                 onChange={(e) => handleQuestionChange(qIndex, `option-${optIndex}`, e.target.value)}
                                                                 placeholder='Type text or paste image'
-                                                                className={`w-full p-2 bg-gray-50 border ${!isOptionFilled(opt, q.optionImagesUrl[optIndex]) ? "border-red-300" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm`}
+                                                                className={`w-full p-3 bg-slate-50 border-2 ${!isOptionFilled(opt, q.optionImagesUrl[optIndex]) ? "border-red-300" : "border-slate-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200 text-slate-900 placeholder-slate-500`}
                                                                 required
                                                             />
                                                             {!isOptionFilled(opt, q.optionImagesUrl[optIndex]) && (
-                                                                <p className="text-red-500 text-xs mt-1">Option text or image is required</p>
+                                                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    Option text or image is required
+                                                                </p>
                                                             )}
                                                         </div>
 
-                                                        <div className="mt-2">
-
+                                                        <div className="mt-3">
                                                             {q.optionImagesUrl && q.optionImagesUrl[optIndex] ? (
                                                                 <div className="relative inline-block">
                                                                     <img
@@ -863,39 +904,45 @@ export default function EditCreatedExam() {
                                                                             (q.optionImagesPreview && q.optionImagesPreview[optIndex]) :
                                                                             q.optionImagesUrl[optIndex]}
                                                                         alt={`option-${optIndex}`}
-                                                                        className="w-20 h-20 object-contain border rounded-lg shadow-sm"
+                                                                        className="w-24 h-24 object-contain border-2 border-teal-200 rounded-lg shadow-md"
                                                                     />
                                                                     <button
                                                                         onClick={() => removeImage(qIndex, `optionImage-${optIndex}`)}
-                                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200"
+                                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition duration-200 transform hover:scale-110"
                                                                         title="Remove image"
                                                                     >
                                                                         ✕
                                                                     </button>
                                                                 </div>
                                                             ) : (
-                                                                <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 flex items-center transition duration-200"
+                                                                <button
                                                                     onClick={() => triggerFileInput(qIndex, `optionImage-${optIndex}`)}
+                                                                    className="text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center transition duration-200 bg-teal-50 hover:bg-teal-100 px-3 py-2 rounded-lg cursor-pointer"
                                                                 >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                                     </svg>
                                                                     Add image
-                                                                    <input
-                                                                        type="file"
-                                                                        accept="image/*"
-                                                                        ref={el => fileInputRefs.current[`${qIndex}-optionImage-${optIndex}`] = el}
-                                                                        onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e.target.files[0])}
-                                                                        className="hidden"
-                                                                    />
-                                                                </label>
+                                                                </button>
                                                             )}
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                ref={el => fileInputRefs.current[`${qIndex}-optionImage-${optIndex}`] = el}
+                                                                onChange={(e) => handleImageChange(qIndex, `optionImage-${optIndex}`, e)}
+                                                                className="hidden"
+                                                            />
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                             {q.correctOption === null && (
-                                                <p className="text-red-500 text-xs mt-2">Please select the correct option</p>
+                                                <p className="text-red-500 text-sm mt-3 flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Please select the correct option
+                                                </p>
                                             )}
                                         </div>
                                     </div>
@@ -904,11 +951,11 @@ export default function EditCreatedExam() {
                                 {/* Add Question Button */}
                                 <button
                                     onClick={addQuestion}
-                                    className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 rounded-lg transition duration-300 flex items-center justify-center mt-4 text-sm cursor-pointer"
+                                    className="w-full bg-gradient-to-r from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 text-teal-700 font-semibold py-4 rounded-xl transition-all duration-300 flex items-center justify-center mt-6 text-base border-2 border-dashed border-teal-200 hover:border-teal-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className="h-4 w-4 mr-2"
+                                        className="h-5 w-5 mr-3"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -925,22 +972,22 @@ export default function EditCreatedExam() {
                             </div>
 
                             {/* Navigation Buttons */}
-                            <div className="flex flex-wrap gap-3 justify-between mt-8">
+                            <div className="flex flex-wrap gap-4 justify-between mt-10">
                                 <button
                                     onClick={() => setActiveTab("details")}
-                                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                                    className="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center text-base cursor-pointer"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                     Back to Details
                                 </button>
-                                <div className="flex gap-3">
+                                <div className="flex gap-4">
                                     <button
                                         onClick={handleCancelExam}
-                                        className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center text-sm cursor-pointer"
+                                        className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center text-base cursor-pointer"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                         Cancel
@@ -948,16 +995,16 @@ export default function EditCreatedExam() {
                                     <button
                                         onClick={updateExam}
                                         disabled={!isQuestionsValid() || updating}
-                                        className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow transition duration-300 flex items-center justify-center text-sm min-w-[120px]"
+                                        className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center text-base min-w-[140px] cursor-pointer"
                                     >
                                         {updating ? (
                                             <>
-                                                <Loader className="animate-spin h-4 w-4 mr-2" />
+                                                <Loader className="animate-spin h-5 w-5 mr-2" />
                                                 Updating...
                                             </>
                                         ) : (
                                             <>
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
                                                 Update Exam

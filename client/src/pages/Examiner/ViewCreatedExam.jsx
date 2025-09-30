@@ -66,106 +66,377 @@ export default function ViewCreatedExam() {
   };
 
 
-const styles = StyleSheet.create({
-  page: { padding: 20, fontFamily: "SolaimanLipi", fontSize: 12 },
-  header: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 8 },
-  subHeader: { fontSize: 12, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
-  details: { fontSize: 10, marginBottom: 10, flexDirection: "row", flexWrap: "wrap" },
-  detailItem: { marginRight: 15, marginBottom: 3 },
-  questionText: { fontWeight: "bold", marginBottom: 4 },
-  option: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
-  optionLetter: { fontWeight: "bold", marginRight: 4 },
-  answer: { color: "green", marginTop: 4, fontWeight: "bold" },
-
-  // Image handling
-  image: { marginVertical: 6, width: 250, height: 150, objectFit: "contain", borderRadius: 5 }, // fixed size
-  smallImage: { marginVertical: 4, width: 120, height: 80, objectFit: "contain", borderRadius: 3 },
-  hr: { borderBottomWidth: 1, borderBottomColor: "#000", marginVertical: 8 },
+  const styles = StyleSheet.create({
+  page: { 
+    padding: 25, 
+    fontSize: 11,
+    lineHeight: 1.3
+  },
+  header: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    textAlign: "center", 
+    marginBottom: 10
+  },
+  instructionsSection: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: "#f8f9fa"
+  },
+  instructionsTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginBottom: 5
+  },
+  instructionItem: {
+    fontSize: 10,
+    marginBottom: 2,
+    flexDirection: "row"
+  },
+  bullet: {
+    marginRight: 5
+  },
+  twoColumnContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start"
+  },
+  column: {
+    width: "48%"
+  },
+  questionContainer: {
+    marginBottom: 12,
+    minHeight: 10 // Ensure minimum height for questions
+  },
+  questionNumber: {
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#000"
+  },
+  questionText: { 
+    fontSize: 10, 
+    fontWeight: "normal", 
+    marginBottom: 6,
+    textAlign: "justify"
+  },
+  optionsContainer: {
+    marginLeft: 5
+  },
+  option: { 
+    flexDirection: "row", 
+    alignItems: "flex-start",
+    marginBottom: 3
+  },
+  optionLetter: { 
+    fontSize: 9,
+    fontWeight: "bold", 
+    marginRight: 6,
+    minWidth: 15
+  },
+  optionText: {
+    fontSize: 9,
+    flex: 1,
+    textAlign: "justify"
+  },
+  image: { 
+    marginVertical: 4, 
+    maxWidth: "90%", 
+    maxHeight: 70,
+    alignSelf: "center"
+  },
+  smallImage: { 
+    marginVertical: 2, 
+    maxWidth: 60, 
+    maxHeight: 45,
+    alignSelf: "flex-start"
+  },
+  pageNumber: {
+    position: "absolute",
+    bottom: 15,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: 9,
+    color: "#666"
+  }
 });
 
-// Split into pages (define max questions per page)
-const getPages = (questions, questionsPerPage = 6) => {
-  const pages = [];
-  for (let i = 0; i < questions.length; i += questionsPerPage) {
-    pages.push(questions.slice(i, i + questionsPerPage));
+// Function to calculate how many questions fit in a column
+const calculateQuestionsPerColumn = (questions, startIndex, columnHeight) => {
+  let currentHeight = 0;
+  let count = 0;
+  const averageQuestionHeight = 80; // Approximate height per question in points
+  
+  for (let i = startIndex; i < questions.length; i++) {
+    const question = questions[i];
+    let questionHeight = averageQuestionHeight;
+    
+    // Adjust height if question has image
+    if (question.question_image_url) {
+      questionHeight += 80;
+    }
+    
+    // Adjust height if options have images
+    const hasOptionImages = ["A", "B", "C", "D"].some(letter => 
+      question.options[letter].image_url
+    );
+    if (hasOptionImages) {
+      questionHeight += 20;
+    }
+    
+    if (currentHeight + questionHeight > columnHeight) {
+      break;
+    }
+    
+    currentHeight += questionHeight;
+    count++;
   }
-  return pages;
+  
+  return count > 0 ? count : 1; // Always at least 1 question per column
 };
 
+// PDF generation with proper column filling
 const exportPDF = async (includeAnswers = false) => {
   if (!exam) return;
-  const pages = getPages(exam.questions, 6); // 6 questions per page
+  
+  const columnHeight = 650; // Approximate height available for questions per column
+  let currentQuestionIndex = 0;
+
+  // Function to create pages with proper column filling
+  const createPages = (questions) => {
+    const pages = [];
+    
+    while (currentQuestionIndex < questions.length) {
+      // Calculate how many questions fit in left column
+      const leftColumnCount = calculateQuestionsPerColumn(
+        questions, 
+        currentQuestionIndex, 
+        columnHeight
+      );
+      
+      const leftColumnQuestions = questions.slice(
+        currentQuestionIndex, 
+        currentQuestionIndex + leftColumnCount
+      );
+      
+      currentQuestionIndex += leftColumnCount;
+      
+      // Calculate how many questions fit in right column
+      const rightColumnCount = calculateQuestionsPerColumn(
+        questions, 
+        currentQuestionIndex, 
+        columnHeight
+      );
+      
+      const rightColumnQuestions = questions.slice(
+        currentQuestionIndex, 
+        currentQuestionIndex + rightColumnCount
+      );
+      
+      currentQuestionIndex += rightColumnCount;
+      
+      pages.push({
+        leftColumn: leftColumnQuestions,
+        rightColumn: rightColumnQuestions,
+        startIndex: currentQuestionIndex - leftColumnCount - rightColumnCount
+      });
+    }
+    
+    return pages;
+  };
+
+  const pages = createPages(exam.questions);
 
   const ExamDocument = (
     <Document>
-      {pages.map((pageQuestions, pageIndex) => (
-        <Page key={pageIndex} style={styles.page}>
-          {pageIndex === 0 && (
-            <>
-              <Text style={styles.header}>{exam.exam_name}</Text>
-              <Text style={styles.subHeader}>
-                {exam.subject} - {exam.chapter}
-              </Text>
-              <View style={styles.details}>
-                <Text style={styles.detailItem}>Class: {exam.class_name || "N/A"}</Text>
-                <Text style={styles.detailItem}>Marks: {exam.total_marks}</Text>
-                <Text style={styles.detailItem}>Time: {exam.total_time_minutes} min</Text>
-                {exam.negative_marks_value > 0 && (
-                  <Text style={styles.detailItem}>Negative: {exam.negative_marks_value}</Text>
-                )}
-                <Text style={styles.detailItem}>Attempts: {exam.attempts_allowed}</Text>
-                <Text style={styles.detailItem}>Questions: {exam.questions.length}</Text>
-              </View>
-              {exam.description && (
-                <Text style={{ marginBottom: 10 }}>Instructions: {exam.description}</Text>
-              )}
-              <View style={styles.hr} />
-            </>
-          )}
-
-          {/* Single column questions */}
-          {pageQuestions.map((q, idx) => (
-            <View key={q.question_id} style={{ marginBottom: 15 }}>
-              <Text style={styles.questionText}>
-                {idx + 1 + pageIndex * 6}. {q.question_text}
-              </Text>
-
-              {/* Question image */}
-              {q.question_image_url && (
-                <Image src={q.question_image_url} style={styles.image} />
-              )}
-
-              {/* Options */}
-              {["A", "B", "C", "D"].map((letter) => (
-                <View key={letter} style={styles.option}>
-                  <Text style={styles.optionLetter}>{letter}.</Text>
-                  <Text>{q.options[letter].text}</Text>
-                  {q.options[letter].image_url && (
-                    <Image src={q.options[letter].image_url} style={styles.smallImage} />
+      {pages.map((page, pageIndex) => {
+        const { leftColumn, rightColumn, startIndex } = page;
+        
+        return (
+          <Page key={pageIndex} style={styles.page}>
+            {/* Header and Instructions - Only on first page */}
+            {pageIndex === 0 && (
+              <>
+                <Text style={styles.header}>{exam.exam_name}</Text>
+                
+                {/* Instructions Section */}
+                <View style={styles.instructionsSection}>
+                  <Text style={styles.instructionsTitle}>General Instructions:</Text>
+                  
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text>All questions are compulsory.</Text>
+                  </View>
+                  
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text>Each question carries equal marks.</Text>
+                  </View>
+                  
+                  {exam.negative_marks_value > 0 && (
+                    <View style={styles.instructionItem}>
+                      <Text style={styles.bullet}>•</Text>
+                      <Text>Negative marking: -{exam.negative_marks_value} for each wrong answer.</Text>
+                    </View>
                   )}
+                  
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text>Choose the correct option for each question.</Text>
+                  </View>
+                  
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text>Time allowed: {exam.total_time_minutes} minutes.</Text>
+                  </View>
+                  
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text>Maximum marks: {exam.total_marks}.</Text>
+                  </View>
                 </View>
-              ))}
+              </>
+            )}
+            
+            {/* Two Column Layout */}
+            <View style={styles.twoColumnContainer}>
+              {/* Left Column - Filled completely first */}
+              <View style={styles.column}>
+                {leftColumn.map((q, idx) => {
+                  const questionNumber = startIndex + idx + 1;
+                  return (
+                    <View key={q.question_id} style={styles.questionContainer} wrap={false}>
+                      <Text style={styles.questionNumber}>
+                        {questionNumber}. {q.question_text}
+                      </Text>
 
-              {includeAnswers && (
-                <Text style={styles.answer}>✓ Answer: {q.correct_answer}</Text>
-              )}
+                      {/* Question Image */}
+                      {q.question_image_url && (
+                        <Image 
+                          src={q.question_image_url} 
+                          style={styles.image}
+                          cache={false}
+                        />
+                      )}
+
+                      {/* Options */}
+                      <View style={styles.optionsContainer}>
+                        {["A", "B", "C", "D"].map((letter) => (
+                          <View key={letter} style={styles.option}>
+                            <Text style={styles.optionLetter}>{letter}.</Text>
+                            <View style={{flex: 1}}>
+                              <Text style={styles.optionText}>
+                                {q.options[letter].text}
+                              </Text>
+                              {q.options[letter].image_url && (
+                                <Image 
+                                  src={q.options[letter].image_url} 
+                                  style={styles.smallImage}
+                                  cache={false}
+                                />
+                              )}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Answer Section - Only if answers are included */}
+                      {includeAnswers && (
+                        <View style={{marginTop: 4}}>
+                          <Text style={{fontSize: 8, fontWeight: "bold", color: "green"}}>
+                            Answer: {q.correct_answer}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Right Column - Filled after left column is complete */}
+              <View style={styles.column}>
+                {rightColumn.map((q, idx) => {
+                  const questionNumber = startIndex + leftColumn.length + idx + 1;
+                  return (
+                    <View key={q.question_id} style={styles.questionContainer} wrap={false}>
+                      <Text style={styles.questionNumber}>
+                        {questionNumber}. {q.question_text}
+                      </Text>
+
+                      {/* Question Image */}
+                      {q.question_image_url && (
+                        <Image 
+                          src={q.question_image_url} 
+                          style={styles.image}
+                          cache={false}
+                        />
+                      )}
+
+                      {/* Options */}
+                      <View style={styles.optionsContainer}>
+                        {["A", "B", "C", "D"].map((letter) => (
+                          <View key={letter} style={styles.option}>
+                            <Text style={styles.optionLetter}>{letter}.</Text>
+                            <View style={{flex: 1}}>
+                              <Text style={styles.optionText}>
+                                {q.options[letter].text}
+                              </Text>
+                              {q.options[letter].image_url && (
+                                <Image 
+                                  src={q.options[letter].image_url} 
+                                  style={styles.smallImage}
+                                  cache={false}
+                                />
+                              )}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Answer Section - Only if answers are included */}
+                      {includeAnswers && (
+                        <View style={{marginTop: 4}}>
+                          <Text style={{fontSize: 8, fontWeight: "bold", color: "green"}}>
+                            Answer: {q.correct_answer}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
             </View>
-          ))}
-        </Page>
-      ))}
+
+            {/* Page Number */}
+            <Text style={styles.pageNumber}>
+              Page {pageIndex + 1}
+            </Text>
+          </Page>
+        );
+      })}
     </Document>
   );
 
-  const asPdf = pdf();
-  asPdf.updateContainer(ExamDocument);
-  const blob = await asPdf.toBlob();
+  try {
+    const asPdf = pdf();
+    asPdf.updateContainer(ExamDocument);
+    const blob = await asPdf.toBlob();
 
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = includeAnswers
-    ? `${exam.exam_name.replace(/\s+/g, "_")}_With_Answers.pdf`
-    : `${exam.exam_name.replace(/\s+/g, "_")}_Question_Paper.pdf`;
-  link.click();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    const fileName = includeAnswers
+      ? `${exam.exam_name.replace(/\s+/g, "_")}_With_Answers.pdf`
+      : `${exam.exam_name.replace(/\s+/g, "_")}.pdf`;
+    link.download = fileName;
+    link.click();
+
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(link.href), 100);
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("Failed to generate PDF. Please try again.");
+  }
 };
 
 
