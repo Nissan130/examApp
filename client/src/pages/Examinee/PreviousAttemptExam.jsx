@@ -1,31 +1,41 @@
 import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
-import { Eye, BarChart, Clock, Loader, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, BarChart, Clock, Loader, BookOpen, ChevronLeft, ChevronRight, TrendingUp, Target, Calendar, Hash } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import { API_BASE_URL } from "../../utils/api";
 
-// Score indicator component with circular progress
+// Enhanced Score indicator with modern design
 const ScoreIndicator = ({ score, total }) => {
   const percentage = (score / total) * 100;
-  const radius = 42;
+  const radius = 45;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
   
   let strokeColor = "";
+  let bgColor = "";
   
-  if (percentage >= 80) strokeColor = "stroke-green-500";
-  else if (percentage >= 60) strokeColor = "stroke-blue-500";
-  else if (percentage >= 40) strokeColor = "stroke-yellow-500";
-  else strokeColor = "stroke-red-500";
+  if (percentage >= 80) {
+    strokeColor = "stroke-teal-500";
+    bgColor = "from-teal-50 to-emerald-50";
+  } else if (percentage >= 60) {
+    strokeColor = "stroke-cyan-500";
+    bgColor = "from-cyan-50 to-blue-50";
+  } else if (percentage >= 40) {
+    strokeColor = "stroke-amber-500";
+    bgColor = "from-amber-50 to-orange-50";
+  } else {
+    strokeColor = "stroke-rose-500";
+    bgColor = "from-rose-50 to-pink-50";
+  }
   
   return (
-    <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+    <div className={`relative flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br ${bgColor} rounded-2xl border border-slate-200 p-2`}>
       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
         <circle
-          className="text-red-200 stroke-current"
+          className="stroke-slate-200"
           strokeWidth="8"
-          cx="52"
+          cx="50"
           cy="50"
           r={radius}
           fill="transparent"
@@ -43,21 +53,170 @@ const ScoreIndicator = ({ score, total }) => {
         />
       </svg>
       <div className="absolute flex flex-col items-center justify-center">
-        <span className="text-base font-bold text-gray-800 sm:text-lg">{score}</span>
-        <span className="text-xs text-gray-500 sm:text-sm">of {total}</span>
+        <span className="text-lg font-bold text-slate-900 sm:text-xl">{score}</span>
+        <span className="text-xs text-slate-600 sm:text-sm">/{total}</span>
+
       </div>
     </div>
   );
 };
 
-// Use a consistent color for all cards
-const getCardBgColor = () => {
-  return "bg-gradient-to-br from-blue-50 to-cyan-50";
-};
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-// Use a consistent color for all headers
-const getHeaderBgColor = () => {
-  return "bg-gradient-to-r from-blue-100 to-blue-200";
+const formatTimeTaken = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+
+// Modern card with glass morphism effect
+const ExamCard = ({ exam, index }) => (
+  <div
+    className="group relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-200/60 hover:border-teal-300/80 overflow-hidden"
+    style={{
+      animationDelay: `${index * 100}ms`,
+      animation: 'fadeInUp 0.6s ease-out forwards'
+    }}
+  >
+    {/* Background gradient overlay on hover */}
+    <div className="absolute inset-0 bg-gradient-to-br from-teal-50/50 to-cyan-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    
+    {/* Card Content */}
+    <div className="relative z-10">
+      {/* Header with gradient background */}
+      <div className="bg-gradient-to-r from-teal-500/10 to-cyan-500/10 p-5 border-b border-slate-200/60">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2 leading-tight">
+              {exam.exam_name} - {exam.class_name}
+            </h3>
+            <div className="flex items-center text-slate-600 text-sm">
+              <BookOpen size={14} className="mr-1" />
+              <span>{exam.chapter} - {exam.subject}</span>
+            </div>
+          </div>
+          <div className="flex-shrink-0 ml-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              #{index + 1}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="p-5">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Score Display */}
+          <div className="col-span-2 flex justify-center">
+            <ScoreIndicator score={exam.score} total={exam.total_questions} />
+          </div>
+
+          {/* Stats Grid */}
+          <div className="space-y-3">
+            <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60">
+              <div className="flex items-center text-slate-600 mb-1">
+                <Hash size={14} className="mr-2" />
+                <span className="text-xs font-medium">Total Questions</span>
+              </div>
+              <div className="text-lg font-bold text-slate-900">{exam.total_questions}</div>
+            </div>
+            
+            <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60">
+              <div className="flex items-center text-slate-600 mb-1">
+                <Target size={14} className="mr-2" />
+                <span className="text-xs font-medium">Marks Percentage</span>
+              </div>
+              <div className="text-lg font-bold text-slate-900">
+                {((exam.score / exam.total_questions) * 100).toFixed(0)}%
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60">
+              <div className="flex items-center text-slate-600 mb-1">
+                <Clock size={14} className="mr-2" />
+                <span className="text-xs font-medium">Time Taken</span>
+              </div>
+              <div className="text-lg font-bold text-slate-900">
+                {formatTimeTaken(exam.time_taken_seconds)}
+              </div>
+            </div>
+            
+            <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60">
+              <div className="flex items-center text-slate-600 mb-1">
+                <Calendar size={14} className="mr-2" />
+                <span className="text-xs font-medium">Exam Date</span>
+              </div>
+              <div className="text-sm font-semibold text-slate-900">
+                {formatDate(exam.created_at)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Link
+            to={`/examinee/previous-attempt-exam/${exam.attempt_exam_id}`}
+            className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 group/btn shadow-md"
+          >
+            <Eye size={16} className="mr-2 group-hover/btn:scale-110 transition-transform" />
+            <span className="font-semibold">Details</span>
+          </Link>
+          
+          <Link
+            to={`/examinee/attempt-exam-result/leaderboard/${exam.exam_id}`}
+            className="flex-1 flex items-center justify-center px-4 py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:scale-105 hover:shadow-lg hover:border-teal-300 transition-all duration-300 group/btn shadow-sm"
+          >
+            <TrendingUp size={16} className="mr-2 group-hover/btn:scale-110 transition-transform" />
+            <span className="font-semibold">Rank</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Stats Overview Component
+const StatsOverview = ({ exams }) => {
+  const totalExams = exams.length;
+  const totalQuestions = exams.reduce((sum, exam) => sum + exam.total_questions, 0);
+  const totalScore = exams.reduce((sum, exam) => sum + exam.score, 0);
+  const avgScore = totalExams > 0 ? (totalScore / totalQuestions * 100).toFixed(1) : 0;
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-5 border border-teal-200/50">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-slate-600 font-medium">Total Exams</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{totalExams}</p>
+          </div>
+          <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+            <BookOpen size={20} className="text-white" />
+          </div>
+        </div>
+      </div>
+
+  
+    </div>
+  );
 };
 
 export default function PreviousAttemptExam() {
@@ -130,175 +289,116 @@ export default function PreviousAttemptExam() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="text-center">
-          <Loader className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading your exams...</p>
+          <div className="animate-spin h-15 w-15 text-teal-600 mx-auto mb-4">
+            <Loader className="absolute inset-0 m-auto text-teal-600" size={28} />
+          </div>
+          <p className="text-slate-600 text-lg font-medium">Loading your exam history...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-4 sm:py-8 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto sm:mt-14">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-10 mt-15">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 sm:text-4xl">
-            Exam <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">History</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto mt-10">
+        {/* Enhanced Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-3xl shadow-2xl mb-6">
+            <TrendingUp className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl sm:text-4xl font-bold text-slate-900 mb-4">
+            <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              Exam History
+            </span>
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto text-base sm:text-lg">
-            Review your performance and track progress
+          <p className=" text-slate-600 max-w-xl mx-auto leading-relaxed">
+            Track your learning journey and monitor performance trends
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-6 max-w-3xl mx-auto sm:p-5 sm:mb-8">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-base text-red-700">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8 max-w-3xl mx-auto shadow-lg">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-red-600 font-bold">!</span>
+              </div>
+              <div>
+                <p className="text-red-700 font-medium">{error}</p>
               </div>
             </div>
           </div>
         )}
 
         {exams.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center max-w-2xl mx-auto sm:p-10">
-            <div className="text-gray-300 mb-6">
-              <BookOpen className="w-16 h-16 mx-auto sm:w-20 sm:h-20" />
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-12 text-center max-w-2xl mx-auto border border-slate-200/60">
+            <div className="w-24 h-24 bg-gradient-to-r from-teal-100 to-cyan-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-12 h-12 text-teal-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-3 sm:text-2xl">No exams attempted yet</h3>
-            <p className="text-gray-600 mb-8 text-base sm:text-lg">
-              You haven't completed any exams yet.
+            <h3 className="text-2xl font-bold text-slate-900 mb-4">No exams attempted yet</h3>
+            <p className="text-slate-600 text-lg mb-8 leading-relaxed">
+              Start your learning journey by taking your first exam
             </p>
             <Link
               to="/examinee/dashboard"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-base sm:px-7 sm:py-3.5 sm:text-lg"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-700 text-white font-bold rounded-2xl hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg text-lg"
             >
               Start Your First Exam
             </Link>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+            {/* Stats Overview */}
+            <StatsOverview exams={exams} />
+
+            {/* Modern Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
               {exams.map((exam, index) => (
-                <div
-                  key={exam.attempt_exam_id}
-                  className={`${getCardBgColor()} rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 overflow-hidden`}
-                >
-                  {/* Card Header */}
-                  <div className={`p-4 border-b border-gray-200 ${getHeaderBgColor()} sm:p-5`}>
-                    <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2 sm:text-lg">
-                      {exam.exam_name}
-                    </h3>
-                    <p className="text-sm text-gray-600 sm:text-base">
-                      {exam.chapter} - {exam.subject}
-                    </p>
-                  </div>
-
-                  {/* Score Display */}
-                  <div className="p-4 flex flex-col items-center justify-center sm:p-5">
-                    <div className="text-sm text-gray-500 font-medium mb-3">Obtained Marks</div>
-                    <ScoreIndicator score={exam.score} total={exam.total_questions} />
-                  </div>
-
-                  {/* Stats */}
-                  <div className="px-4 pb-3 grid grid-cols-2 gap-3 sm:px-5 sm:pb-4">
-                    <div className="text-center bg-red-50 bg-opacity-70 rounded-lg p-2 backdrop-blur-sm sm:p-3">
-                      <div className="text-base font-bold text-gray-800 sm:text-lg">{exam.total_questions}</div>
-                      <div className="text-xs text-gray-600 sm:text-sm">Questions</div>
-                    </div>
-                    <div className="text-center bg-red-50 bg-opacity-70 rounded-lg p-2 backdrop-blur-sm sm:p-3">
-                      <div className="text-base font-bold text-gray-800 sm:text-lg">
-                        {formatTimeTaken(exam.time_taken_seconds)}
-                      </div>
-                      <div className="text-xs text-gray-600 sm:text-sm">Taken Time</div>
-                    </div>
-                  </div>
-
-                  {/* Meta Information */}
-                  <div className="px-4 pb-3 sm:px-5 sm:pb-4">
-                    <div className="flex items-center text-sm text-gray-600 sm:text-base">
-                      <Clock size={14} className="mr-1 text-gray-500 sm:size-4" />
-                      {formatDate(exam.created_at)}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons - Fixed tooltip isolation */}
-                  <div className="p-3 border-t border-gray-200 bg-white bg-opacity-50 flex justify-between backdrop-blur-sm sm:p-4">
-                    <div className="flex-1 mr-2 relative group">
-                      <Link
-                        to={`/examinee/previous-attempt-exam/${exam.attempt_exam_id}`}
-                        className="flex items-center justify-center w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm shadow-sm sm:px-4 sm:py-2.5 sm:text-base"
-                      >
-                        <Eye size={16} className="mr-1 sm:mr-2 sm:size-5" />
-                        Details
-                      </Link>
-                      <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity duration-200 z-50 shadow-lg font-medium sm:mb-3 sm:px-3 sm:py-1.5 sm:text-sm">
-                        View detailed results
-                      </span>
-                    </div>
-                    
-                    <div className="flex-1 ml-2 relative group">
-                      <Link
-                        to={`/examinee/attempt-exam-result/leaderboard/${exam.exam_id}`}
-                        className="flex items-center justify-center w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm shadow-sm sm:px-4 sm:py-2.5 sm:text-base"
-                      >
-                        <BarChart size={16} className="mr-1 sm:mr-2 sm:size-5" />
-                        Rank
-                      </Link>
-                      <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap transition-opacity duration-200 z-50 shadow-lg font-medium sm:mb-3 sm:px-3 sm:py-1.5 sm:text-sm">
-                        Compare with others
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <ExamCard key={exam.attempt_exam_id} exam={exam} index={index} />
               ))}
             </div>
 
-            {/* Pagination */}
+            {/* Enhanced Pagination */}
             {pagination.total_pages > 1 && (
-              <div className="flex justify-center mt-8 sm:mt-10">
-                <nav className="flex items-center space-x-2 bg-white rounded-lg shadow-sm p-2 border border-gray-200 sm:space-x-3 sm:p-3">
+              <div className="flex justify-center">
+                <nav className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-4 border border-slate-200/60">
                   <button
                     onClick={() => fetchMyExams(pagination.page - 1)}
                     disabled={!pagination.has_prev}
-                    className="flex items-center justify-center px-3 py-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors text-gray-700 text-sm sm:px-4 sm:py-2.5 sm:text-base"
+                    className="flex items-center justify-center px-4 py-3 rounded-xl border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:scale-105 transition-all duration-300 text-slate-700 font-medium"
                   >
-                    <ChevronLeft size={16} className="mr-1 sm:mr-2 sm:size-5" />
-                    <span className="hidden xs:inline">Prev</span>
+                    <ChevronLeft size={18} className="mr-2" />
+                    <span>Previous</span>
                   </button>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1">
                     {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
                       const pageNum = i + 1;
                       return (
                         <button
                           key={pageNum}
                           onClick={() => fetchMyExams(pageNum)}
-                          className={`px-3 py-2 rounded-md border transition-colors text-sm font-medium sm:px-4 sm:py-2.5 sm:text-base ${
+                          className={`px-4 py-3 rounded-xl border transition-all duration-300 font-medium min-w-[3rem] ${
                             pagination.page === pageNum
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              ? "bg-gradient-to-r from-teal-600 to-cyan-700 text-white border-teal-600 shadow-lg scale-105"
+                              : "border-slate-300 text-slate-700 hover:bg-slate-50 hover:scale-105"
                           }`}
                         >
                           {pageNum}
                         </button>
                       );
                     })}
-                    {pagination.total_pages > 5 && (
-                      <span className="px-2 py-2 text-gray-500 text-sm sm:px-3 sm:py-2.5">...</span>
-                    )}
                   </div>
 
                   <button
                     onClick={() => fetchMyExams(pagination.page + 1)}
                     disabled={!pagination.has_next}
-                    className="flex items-center justify-center px-3 py-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors text-gray-700 text-sm sm:px-4 sm:py-2.5 sm:text-base"
+                    className="flex items-center justify-center px-4 py-3 rounded-xl border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:scale-105 transition-all duration-300 text-slate-700 font-medium"
                   >
-                    <span className="hidden xs:inline">Next</span>
-                    <ChevronRight size={16} className="ml-1 sm:ml-2 sm:size-5" />
+                    <span>Next</span>
+                    <ChevronRight size={18} className="ml-2" />
                   </button>
                 </nav>
               </div>
@@ -306,6 +406,20 @@ export default function PreviousAttemptExam() {
           </>
         )}
       </div>
+
+      {/* Add CSS for animations */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

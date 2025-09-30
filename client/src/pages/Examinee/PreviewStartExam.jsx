@@ -64,7 +64,6 @@ export default function PreviewStartExam() {
           {/* Subject & Chapter Info */}
           {(exam.subject || exam.chapter || exam.class) && (
             <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Exam Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {exam.class && (
                   <div className="text-center">
@@ -82,6 +81,12 @@ export default function PreviewStartExam() {
                   <div className="text-center">
                     <p className="text-sm text-slate-600 mb-1">Chapter</p>
                     <p className="text-lg font-semibold text-slate-900">{exam.chapter}</p>
+                  </div>
+                )}
+                {exam.class_name && (
+                  <div className="text-center">
+                    <p className="text-sm text-slate-600 mb-1">Class</p>
+                    <p className="text-lg font-semibold text-slate-900">{exam.class_name}</p>
                   </div>
                 )}
               </div>

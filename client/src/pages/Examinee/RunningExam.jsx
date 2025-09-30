@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Timer from "../../components/Timer";
 import RunningExamQuestionCard from "../../components/RunningExamQuestionCard";
@@ -23,6 +23,11 @@ export default function RunningExam() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeTaken, setTimeTaken] = useState(0);
   const questions = exam?.questions || [];
+
+    // Add this useEffect to scroll to top on component mount
+    useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   if (!exam) {
     return (
@@ -109,7 +114,7 @@ export default function RunningExam() {
 
       if (response.data.status === 'success') {
         custom_alert.success("Exam submitted successfully!");
-        
+
         navigate("/examinee/attempt-exam/result-details", {
           state: {
             examResult: response.data.attempt_exam,
@@ -138,17 +143,25 @@ export default function RunningExam() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-28 px-4 md:px-6 pb-8">
-      {/* Fixed Header */}
+
+      {/* Exam Name - Scrolls normally on small screens */}
+      <div className="md:hidden bg-white py-4 px-4 shadow-sm border-b border-slate-200 mt-18">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-xl font-semibold text-slate-900">{exam.exam_name}</h2>
+        </div>
+      </div>
+
+      {/* Fixed Header - Only Timer and Submit */}
       <div className="fixed top-16 left-0 right-0 z-50 bg-white shadow-lg border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-3 md:mb-0">
+            {/* Exam Name - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:block">
               <h2 className="text-xl font-semibold text-slate-900">{exam.exam_name}</h2>
-              <p className="text-slate-600 text-sm mt-1">Answer all questions to complete the exam</p>
             </div>
 
-            {/* Timer + Answered Count + Submit */}
-            <div className="flex items-center gap-4">
+            {/* Timer + Answered Count + Submit - Always fixed */}
+            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-normal">
               <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-center shadow-sm">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,7 +184,7 @@ export default function RunningExam() {
               <button
                 onClick={() => setShowSubmitConfirm(true)}
                 disabled={isSubmitting}
-                className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -195,7 +208,8 @@ export default function RunningExam() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto mt-16">
+
+      <div className="max-w-6xl mx-auto mt-6 md:mt-16">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Question Navigation */}
           <div className="w-full lg:w-1/4 bg-white p-6 rounded-2xl shadow-lg border border-slate-200 h-fit lg:sticky lg:top-28">
@@ -211,8 +225,8 @@ export default function RunningExam() {
                   key={q.question_id}
                   href={`#question-${q.question_id}`}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold transition-all duration-200 hover:scale-105
-                    ${answers[q.question_id] 
-                      ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-sm' 
+                    ${answers[q.question_id]
+                      ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}
                 >
                   {idx + 1}

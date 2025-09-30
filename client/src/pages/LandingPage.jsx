@@ -33,7 +33,7 @@ export default function LandingPage() {
                 to="/register"
                 className="bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 inline-flex items-center justify-center"
               >
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
               <Link
@@ -48,7 +48,7 @@ export default function LandingPage() {
             {/* Trust Metrics */}
             <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-200">
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-900">50K+</div>
+                <div className="text-2xl font-bold text-slate-900">10+</div>
                 <div className="text-sm text-slate-600">Exams Created</div>
               </div>
               <div className="text-center">
@@ -184,7 +184,7 @@ export default function LandingPage() {
             to="/register"
             className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white px-10 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 inline-flex items-center justify-center"
           >
-            Start Free Trial
+            Get Started
             <ArrowRight className="ml-2 w-5 h-5" />
           </Link>
           <Link

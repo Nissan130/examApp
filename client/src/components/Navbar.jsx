@@ -75,7 +75,6 @@ export default function Navbar() {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-slate-900">ExamPro</span>
-              <span className="text-xs text-teal-600 font-medium">Professional</span>
             </div>
           </button>
 

@@ -103,7 +103,7 @@ export default function EnterExamCode() {
             <button
               type="submit"
               disabled={joinExamLoading}
-              className="w-full bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:transform-none disabled:hover:shadow-xl flex items-center justify-center space-x-2 group"
+              className="w-full bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:transform-none disabled:hover:shadow-xl flex items-center justify-center space-x-2 group cursor-pointer"
             >
               {joinExamLoading ? (
                 <>

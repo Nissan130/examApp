@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Eye, BarChart, Clock, Award, BookOpen, ChevronLeft, Check, X, HelpCircle, Calendar, Clock as TimeIcon, FileText, BarChart3, Printer, Trophy } from "lucide-react";
+import { Eye, BarChart, Clock, Award, BookOpen, ChevronLeft, Check, X, HelpCircle, Calendar, Printer, Trophy, Loader } from "lucide-react";
 import { GlobalContext } from "../../context/GlobalContext";
 import axios from "axios";
 import { API_BASE_URL } from "../../utils/api";
@@ -56,14 +56,18 @@ export default function PreviousAttemptExamDetails() {
     });
   };
 
-  const formatTime = (minutes) => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`;
+  const formatTimeTaken = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} min ${seconds} sec`;
+    } else if (minutes > 0) {
+      return `${minutes} min ${seconds} sec`;
+    } else {
+      return `${seconds} sec`;
     }
-    return `${mins}m`;
   };
 
   const handlePrintResults = () => {
@@ -71,19 +75,21 @@ export default function PreviousAttemptExamDetails() {
   };
 
   const handleViewLeaderboard = () => {
-    navigate(`/examinee/attempt-exam-result/leaderboard/${exam.exam_id}`, { 
-      state: { examName: exam.exam_name, examId: exam.exam_id } 
-    });
+    if (exam) {
+      navigate(`/examinee/attempt-exam-result/leaderboard/${exam.exam_id}`, { 
+        state: { examName: exam.exam_name, examId: exam.exam_id } 
+      });
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4">
-            <Clock className="w-full h-full" />
+          <div className="animate-spin h-12 w-12 text-teal-600 mx-auto mb-4">
+            <Loader className="absolute inset-0 m-auto text-teal-600" size={28} />
           </div>
-          <p className="text-gray-600">Loading exam details...</p>
+          <p className="text-slate-600">Loading exam details...</p>
         </div>
       </div>
     );
@@ -91,23 +97,24 @@ export default function PreviousAttemptExamDetails() {
 
   if (error || !exam) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="max-w-md w-full">
-          <Link to="/examinee/previous-attempts" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6">
-            <ChevronLeft size={20} className="mr-1" /> Back to My Exams
+          <Link to="/examinee/previous-attempts" className="inline-flex items-center text-slate-600 hover:text-slate-900 bg-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 border border-slate-300 hover:border-teal-300 mb-6">
+            <ChevronLeft size={16} className="mr-2" />
+            Back to Exam History
           </Link>
           
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="text-red-500 mb-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border border-slate-200">
+            <div className="text-rose-500 mb-4">
               <X className="w-16 h-16 mx-auto" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-800 mb-3">Unable to load exam details</h3>
-            <p className="text-gray-600 mb-6">{error || "Exam not found"}</p>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">Unable to load exam details</h3>
+            <p className="text-slate-600 mb-6">{error || "Exam not found"}</p>
             <Link
               to="/examinee/previous-attempts"
-              className="inline-flex items-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors shadow-md hover:shadow-lg"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-xl font-semibold"
             >
-              Return to My Exams
+              Return to Exam History
             </Link>
           </div>
         </div>
@@ -119,7 +126,7 @@ export default function PreviousAttemptExamDetails() {
   const correctAnswers = exam.correct_answers || questions.filter(q => q.is_correct).length;
   const wrongAnswers = exam.wrong_answers || questions.filter(q => !q.is_correct && q.selected_answer).length;
   const unansweredQuestions = exam.unanswered_questions || questions.filter(q => !q.selected_answer).length;
-  const scorePercentage = questions.length > 0 ? (correctAnswers / questions.length) * 100 : 0;
+  const scorePercentage = questions.length > 0 ? Math.round((correctAnswers / questions.length) * 100) : 0;
 
   // Filter questions based on active tab
   const filteredQuestions = questions.filter(question => {
@@ -130,242 +137,252 @@ export default function PreviousAttemptExamDetails() {
     return true;
   });
 
+  const getScoreColor = (score) => {
+    if (score >= 80) return "from-teal-500 to-cyan-500";
+    if (score >= 60) return "from-teal-400 to-cyan-400";
+    if (score >= 40) return "from-amber-500 to-orange-500";
+    return "from-rose-500 to-pink-500";
+  };
+
   const getPerformanceMessage = (score) => {
-    if (score >= 80) return "Excellent!";
-    if (score >= 60) return "Good job!";
-    if (score >= 40) return "Fair attempt";
-    return "Keep practicing!";
+    if (score >= 80) return "Excellent Performance!";
+    if (score >= 60) return "Great Job!";
+    if (score >= 40) return "Good Attempt";
+    return "Keep Practicing!";
   };
 
   const getOptionColor = (optionLetter, question) => {
-    if (optionLetter === question.correct_answer) return "bg-green-100 border-green-300";
-    if (optionLetter === question.selected_answer && !question.is_correct) return "bg-red-100 border-red-300";
-    if (optionLetter === question.selected_answer) return "bg-blue-100 border-blue-300";
-    return "bg-gray-50 border-gray-200";
+    if (optionLetter === question.correct_answer) return "bg-teal-50 border-teal-300 shadow-sm";
+    if (optionLetter === question.selected_answer && !question.is_correct) return "bg-rose-50 border-rose-300 shadow-sm";
+    if (optionLetter === question.selected_answer) return "bg-cyan-50 border-cyan-300 shadow-sm";
+    return "bg-slate-50 border-slate-200 hover:border-slate-300";
   };
 
   const getOptionTextColor = (optionLetter, question) => {
-    if (optionLetter === question.correct_answer) return "text-green-800";
-    if (optionLetter === question.selected_answer && !question.is_correct) return "text-red-800";
-    if (optionLetter === question.selected_answer) return "text-blue-800";
-    return "text-gray-700";
+    if (optionLetter === question.correct_answer) return "text-teal-800 font-semibold";
+    if (optionLetter === question.selected_answer && !question.is_correct) return "text-rose-800 font-semibold";
+    if (optionLetter === question.selected_answer) return "text-cyan-800 font-semibold";
+    return "text-slate-700";
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-4 sm:py-8 px-3 sm:px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 mt-15">
-          <div className="flex justify-between items-center mb-4">
+        <div className="text-center mb-6 sm:mb-8 mt-12 sm:mt-15">
+          {/* Top Buttons - Only show on desktop */}
+          <div className="hidden sm:flex justify-between items-center mb-6">
             <Link
-              to="/examinee/previous-attempts"
-              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+              to="/previous-attempt-exam"
+              className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 border border-slate-300 hover:border-teal-300"
             >
-              <ChevronLeft size={16} className="mr-1" />
-              Back to My Exams
+              <ChevronLeft size={16} className="mr-2" />
+              Back to Exam History
             </Link>
-            
-            <div className="flex gap-2">
+
+            <div className="flex gap-3">
               <button
                 onClick={handleViewLeaderboard}
-                className="inline-flex items-center text-sm text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-md"
+                className="inline-flex items-center text-sm bg-white text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-teal-300 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
               >
-                <Trophy size={16} className="mr-1" />
+                <Trophy size={16} className="mr-2" />
                 View Leaderboard
               </button>
-              
+
               <button
                 onClick={handlePrintResults}
-                className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-md"
+                className="inline-flex items-center text-sm bg-white text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-teal-300 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
               >
-                <Printer size={16} className="mr-1" />
+                <Printer size={16} className="mr-2" />
                 Print Results
               </button>
             </div>
           </div>
-          
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-            <Award className="w-8 h-8 text-white" />
+
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-2xl">
+            <Award className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">Exam Attempt Details</h1>
-          <p className="text-lg text-gray-600">{exam.exam_name}</p>
-          <div className="mt-2">
-            <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2 sm:mb-3">
+            Exam Results
+          </h1>
+          <span className="text-lg sm:text-xl text-slate-600 mb-3 sm:mb-4 px-1">{exam.exam_name}</span> 
+          (<span className="text-lg sm:text-xl text-slate-600 mb-3 sm:mb-4 px-1">{exam.class_name}</span>) -
+
+          <span className="text-lg sm:text-xl text-slate-600 mb-3 sm:mb-4 px-1">{exam.subject}</span> 
+          (<span className="text-lg sm:text-xl text-slate-600 mb-3 sm:mb-4 px-1">{exam.chapter}</span>) 
+          <div className="mt-3 sm:mt-4">
+            <span className="inline-block bg-gradient-to-r from-teal-100 to-cyan-100 text-slate-800 text-sm font-semibold px-4 py-2 rounded-full border border-teal-200">
               {getPerformanceMessage(scorePercentage)}
             </span>
           </div>
         </div>
 
         {/* Summary Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 text-center">Attempt Summary</h2>
-          
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-8 mb-6 sm:mb-8 border border-slate-200 hover:border-teal-300 transition-all duration-300">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 sm:mb-6 text-center">Result Summary</h2>
+
           {/* Marks and Percentage - Side by Side */}
-          <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
+          <div className="flex flex-col md:flex-row justify-center gap-4 sm:gap-6 mb-6 sm:mb-8">
             {/* Marks Obtained */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 flex-1 text-center">
-              <div className="text-3xl font-bold text-blue-700 mb-1">
-                {correctAnswers}<span className="text-lg">/{questions.length}</span>
+            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-teal-200 flex-1 text-center hover:shadow-lg transition-all duration-300">
+              <div className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                {correctAnswers}<span className="text-xl sm:text-2xl text-slate-600">/{questions.length}</span>
               </div>
-              <div className="text-sm text-blue-800 font-medium">Marks Obtained</div>
+              <div className="text-sm sm:text-base text-slate-700 font-semibold">Marks Obtained</div>
             </div>
-            
+
             {/* Percentage Score */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200 flex-1 text-center">
-              <div className="text-3xl font-bold text-purple-700 mb-1">
-                {scorePercentage.toFixed(1)}%
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 flex-1 text-center hover:shadow-lg transition-all duration-300">
+              <div className={`text-2xl sm:text-4xl font-bold bg-gradient-to-r ${getScoreColor(scorePercentage)} bg-clip-text text-transparent mb-2`}>
+                {scorePercentage}%
               </div>
-              <div className="text-sm text-purple-800 font-medium">Score Percentage</div>
+              <div className="text-sm sm:text-base text-slate-700 font-semibold">Marks Percentage</div>
             </div>
           </div>
-          
+
           {/* Stats Section */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
-              <div className="text-xl font-bold text-green-600 mb-1">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+            <div className="text-center p-3 sm:p-4 bg-teal-50 rounded-xl sm:rounded-2xl border border-teal-200 hover:shadow-lg transition-all duration-300">
+              <div className="text-lg sm:text-2xl font-bold text-teal-600 mb-1 sm:mb-2">
                 {correctAnswers}
               </div>
-              <div className="text-xs text-green-700 font-medium">Correct</div>
+              <div className="text-xs sm:text-sm text-teal-700 font-semibold">Correct</div>
             </div>
 
-            <div className="text-center p-3 bg-red-50 rounded-xl border border-red-100">
-              <div className="text-xl font-bold text-red-600 mb-1">
+            <div className="text-center p-3 sm:p-4 bg-rose-50 rounded-xl sm:rounded-2xl border border-rose-200 hover:shadow-lg transition-all duration-300">
+              <div className="text-lg sm:text-2xl font-bold text-rose-600 mb-1 sm:mb-2">
                 {wrongAnswers}
               </div>
-              <div className="text-xs text-red-700 font-medium">Wrong</div>
+              <div className="text-xs sm:text-sm text-rose-700 font-semibold">Wrong</div>
             </div>
 
-            <div className="text-center p-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="text-xl font-bold text-gray-600 mb-1">
+            <div className="text-center p-3 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-lg transition-all duration-300">
+              <div className="text-lg sm:text-2xl font-bold text-slate-600 mb-1 sm:mb-2">
                 {unansweredQuestions}
               </div>
-              <div className="text-xs text-gray-700 font-medium">Unanswered</div>
+              <div className="text-xs sm:text-sm text-slate-700 font-semibold">Unanswered</div>
             </div>
           </div>
 
-          <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>Time Taken: {formatTime(exam.time_taken_seconds)}</span>
-            <span>Attempted on: {formatDate(exam.created_at)}</span>
+          <div className="flex justify-between items-center text-sm sm:text-base text-slate-600 bg-slate-50 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-slate-200">
+            <span className="font-medium">Time Taken: {formatTimeTaken(exam.time_taken_seconds)}</span>
+            <span className="font-medium">Attempted on: {formatDate(exam.created_at)}</span>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">Question Review</h3>
-          
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-200 hover:border-teal-300 transition-all duration-300">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-3 sm:mb-4 text-center">Question Review</h3>
+
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "all" 
-                  ? "bg-blue-600 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md sm:shadow-lg hover:shadow-xl hover:scale-105 ${
+                activeTab === "all"
+                  ? "bg-gradient-to-r from-teal-600 to-cyan-700 text-white shadow-lg sm:shadow-2xl"
+                  : "bg-white text-slate-700 border border-slate-300 hover:border-teal-300"
               }`}
             >
-              All Questions ({questions.length})
+              All ({questions.length})
             </button>
-            
+
             <button
               onClick={() => setActiveTab("correct")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "correct" 
-                  ? "bg-green-600 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md sm:shadow-lg hover:shadow-xl hover:scale-105 ${
+                activeTab === "correct"
+                  ? "bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-lg sm:shadow-2xl"
+                  : "bg-white text-slate-700 border border-slate-300 hover:border-teal-300"
               }`}
             >
               Correct ({correctAnswers})
             </button>
-            
+
             <button
               onClick={() => setActiveTab("incorrect")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "incorrect" 
-                  ? "bg-red-600 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md sm:shadow-lg hover:shadow-xl hover:scale-105 ${
+                activeTab === "incorrect"
+                  ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg sm:shadow-2xl"
+                  : "bg-white text-slate-700 border border-slate-300 hover:border-teal-300"
               }`}
             >
-              Incorrect ({wrongAnswers})
+              Wrong ({wrongAnswers})
             </button>
-            
+
             <button
               onClick={() => setActiveTab("unanswered")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "unanswered" 
-                  ? "bg-gray-600 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md sm:shadow-lg hover:shadow-xl hover:scale-105 ${
+                activeTab === "unanswered"
+                  ? "bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg sm:shadow-2xl"
+                  : "bg-white text-slate-700 border border-slate-300 hover:border-teal-300"
               }`}
             >
               Unanswered ({unansweredQuestions})
             </button>
           </div>
-
-          <p className="text-center text-sm text-gray-500">
-            {filteredQuestions.length} question(s) found
-          </p>
         </div>
 
         {/* Questions List */}
-        <div className="space-y-6">
+        <div className="space-y-6 sm:space-y-8">
           {filteredQuestions.map((question, index) => (
-            <div key={question.question_id || index} className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-start justify-between mb-4">
+            <div key={question.question_id || index} className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-8 border border-slate-200 hover:border-teal-300 hover:shadow-xl sm:hover:shadow-2xl transition-all duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-3">
                 <div className="flex items-center">
-                  <span className="text-lg font-semibold text-gray-700 mr-3">Q{index + 1}</span>
+                  <span className="text-lg sm:text-xl font-bold text-slate-900 mr-3 sm:mr-4">Q{index + 1}</span>
                   {question.is_correct ? (
-                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                      <Check size={12} className="mr-1" />
+                    <span className="inline-flex items-center px-2 sm:px-3 py-1 bg-teal-100 text-teal-800 text-xs sm:text-sm font-semibold rounded-full border border-teal-200">
+                      <Check size={12} className="mr-1 sm:mr-1" />
                       Correct
                     </span>
                   ) : question.selected_answer ? (
-                    <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
-                      <X size={12} className="mr-1" />
+                    <span className="inline-flex items-center px-2 sm:px-3 py-1 bg-rose-100 text-rose-800 text-xs sm:text-sm font-semibold rounded-full border border-rose-200">
+                      <X size={12} className="mr-1 sm:mr-1" />
                       Incorrect
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
+                    <span className="inline-flex items-center px-2 sm:px-3 py-1 bg-slate-100 text-slate-800 text-xs sm:text-sm font-semibold rounded-full border border-slate-200">
                       Unanswered
                     </span>
                   )}
                 </div>
-                
-                <div className="text-sm text-gray-500">
+
+                <div className="text-xs sm:text-sm text-slate-600 bg-slate-50 px-2 sm:px-3 py-1 rounded-lg font-medium">
                   Marks: {question.is_correct ? "1" : "0"}
                 </div>
               </div>
 
-              <div className="mb-4">
-                <p className="text-gray-800 font-medium">{question.question_text}</p>
+              <div className="mb-4 sm:mb-6">
+                <p className="text-slate-900 text-base sm:text-lg font-semibold leading-relaxed">{question.question_text}</p>
                 {question.question_image_url && (
-                  <div className="mt-2 max-w-md mx-auto">
+                  <div className="mt-3 sm:mt-4 max-w-md mx-auto">
                     <img 
                       src={question.question_image_url} 
                       alt="Question" 
-                      className="max-w-full h-auto max-h-60 object-contain rounded-lg border border-gray-200 mx-auto"
+                      className="max-w-full h-auto max-h-48 sm:max-h-60 object-contain rounded-lg sm:rounded-xl border border-slate-200 mx-auto shadow-sm"
                     />
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {question.options && Object.entries(question.options).map(([key, option]) => (
                   <div 
                     key={key} 
-                    className={`p-3 rounded-lg border ${getOptionColor(key, question)}`}
+                    className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${getOptionColor(key, question)} hover:shadow-md`}
                   >
                     <div className="flex items-start">
-                      <span className={`font-semibold mr-3 ${getOptionTextColor(key, question)}`}>
+                      <span className={`font-bold text-base sm:text-lg mr-3 sm:mr-4 ${getOptionTextColor(key, question)}`}>
                         {key}.
                       </span>
                       <div className="flex-1">
-                        <p className={getOptionTextColor(key, question)}>
+                        <p className={`text-sm sm:text-base leading-relaxed ${getOptionTextColor(key, question)}`}>
                           {option.text}
                         </p>
                         {option.image_url && (
-                          <div className="mt-2 max-w-xs">
+                          <div className="mt-2 sm:mt-3 max-w-xs">
                             <img 
                               src={option.image_url} 
                               alt={`Option ${key}`} 
-                              className="max-w-full h-auto max-h-40 object-contain rounded border border-gray-200 mx-auto"
+                              className="max-w-full h-auto max-h-32 sm:max-h-40 object-contain rounded-lg border border-slate-200 mx-auto shadow-sm"
                             />
                           </div>
                         )}
@@ -378,21 +395,33 @@ export default function PreviousAttemptExamDetails() {
           ))}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-4 mt-8">
-          <Link
-            to="/examinee/previous-attempts"
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md font-semibold"
-          >
-            Back to My Exams
-          </Link>
-          
+        {/* Action Buttons - Show only on mobile */}
+        <div className="sm:hidden flex flex-col gap-4 mt-8">
           <button
             onClick={handleViewLeaderboard}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-md font-semibold"
+            className="w-full inline-flex items-center justify-center bg-gradient-to-r from-teal-600 to-cyan-700 text-white px-6 py-4 rounded-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-xl font-bold text-base"
           >
+            <Trophy size={20} className="mr-3" />
             View Leaderboard
           </button>
+
+          <button
+            onClick={handlePrintResults}
+            className="w-full inline-flex items-center justify-center bg-white text-slate-700 border border-slate-300 px-6 py-4 rounded-xl hover:scale-105 hover:shadow-lg hover:border-teal-300 transition-all duration-300 shadow-md font-bold text-base"
+          >
+            <Printer size={20} className="mr-3" />
+            Print Results
+          </button>
+        </div>
+
+        {/* Back to Exam History Button - Show only on mobile */}
+        <div className="sm:hidden mt-6">
+          <Link
+            to="/examinee/previous-attempts"
+            className="w-full inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-xl font-bold text-base"
+          >
+            Back to Exam History
+          </Link>
         </div>
       </div>
     </div>

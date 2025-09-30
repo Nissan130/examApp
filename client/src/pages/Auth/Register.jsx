@@ -92,16 +92,7 @@ return (
     {/* Right Side - Register Form */}
     <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white pt-20 lg:pt-10">
       <div className="w-full max-w-md">
-        {/* Mobile Logo */}
-        <div className="lg:hidden flex justify-center mb-8">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center">
-              <BookOpen className="text-white" size={20} />
-            </div>
-            <span className="text-2xl font-bold text-slate-900">ExamPro</span>
-          </div>
-        </div>
-
+        
         {/* Form Container */}
         <div className="bg-white rounded-2xl p-8">
           <div className="text-center mb-8">
